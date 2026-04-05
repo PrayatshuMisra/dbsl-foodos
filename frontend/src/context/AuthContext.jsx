@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data: { session } } = await withTimeout(
           supabase.auth.getSession(),
-          3000 // 3 second max for session check
+          8000 // 8 seconds — free-tier Supabase can be slow on cold start
         );
 
         if (!mounted) return;

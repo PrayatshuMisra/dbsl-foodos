@@ -115,10 +115,11 @@ export default function CurrentOrders({ orderId, orderTotal, onOrderComplete }) 
           if (orderId) {
             supabase
               .from('orders')
-              .update({ status: 'delivered', updated_at: new Date().toISOString() })
+              .update({ order_status: 'Delivered' })
               .eq('order_id', orderId)
               .then(({ error }) => {
                 if (error) console.warn('Could not update order status:', error.message);
+                else console.log('Order', orderId, 'marked as delivered');
               });
           }
 

@@ -223,7 +223,7 @@ export default function Profile() {
     setMobileNumber(user.user_metadata?.phone_number || "");
     setIsLoading(false);
 
-    // Background fetch for extra fields (address, image) from DB
+    // Background fetch for extra fields (address) from DB
     const fetchExtraProfile = async () => {
       try {
         const table   = user.isOwner ? 'restaurant_owners' : 'customers';
@@ -231,19 +231,16 @@ export default function Profile() {
         
         const { data } = await supabase
           .from(table)
-          .select('name, phone_number, contact_number, address, image_url')
+          .select('name, phone_number, address')
           .eq(idField, user.id)
           .maybeSingle();
 
         if (data) {
           if (data.name)         setName(data.name);
           if (data.phone_number) setMobileNumber(data.phone_number);
-          if (data.contact_number) setMobileNumber(prev => prev || data.contact_number);
           if (data.address)      setAddress(data.address);
-          if (data.image_url)    setImage(data.image_url);
         }
       } catch (err) {
-        // Non-fatal — metadata already shown
         console.warn('Background profile fetch failed:', err.message);
       }
     };
@@ -255,23 +252,29 @@ export default function Profile() {
     if (!user) return;
     setIsLoadingOrders(true);
     try {
+      console.log('Fetching orders for user:', user.id);
+      
       const { data, error } = await supabase
         .from('orders')
-        .select('order_id, total_amount, status, created_at, delivery_address')
+        .select('order_id, total_amount, order_status, order_date, delivery_address')
         .eq('customer_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('order_date', { ascending: false });
+      
+      console.log('Orders response:', { data, error, count: data?.length });
+      
       if (error) throw error;
-      // Normalize to the shape OrderList expects
+
       const normalized = (data || []).map(o => ({
         ORDER_ID: o.order_id,
-        ORDER_TIMESTAMP: new Date(o.created_at).toLocaleString(),
-        STATUS: o.status?.charAt(0).toUpperCase() + o.status?.slice(1) || 'Placed',
+        ORDER_TIMESTAMP: new Date(o.order_date).toLocaleString(),
+        STATUS: o.order_status || 'Pending',
         TOTAL_AMOUNT: Number(o.total_amount),
         items: []
       }));
       setOrderData(normalized);
     } catch (err) {
-      console.error('Error fetching orders:', err.message);
+      console.error('Error fetching orders:', err);
+      setOrderData([]);
     } finally {
       setIsLoadingOrders(false);
     }
