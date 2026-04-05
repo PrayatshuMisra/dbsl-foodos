@@ -12,30 +12,35 @@ import OwnerDashboard from "./pages/OwnerDashboard";
 import OwnerMenu from "./pages/OwnerMenu";
 import OwnerAnalytics from "./pages/OwnerAnalytics";
 import Admin from "./pages/Admin";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 export default function App() {
-  return (
-    <Routes>
-      <Route index element={<LoginRegisterForm />} />
-      <Route path="/home" element={<Home />} />
-      <Route path="/login" element={<LoginRegisterForm />} />
-      <Route path="/checkout" element={<Checkout />} />
-      <Route path="/fooditems/*" element={<FoodItems />} />
-      <Route path="/restos" element={<Restos />} />
-      <Route path="/offers" element={<Offers />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/tracking" element={<Tracking />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/restaurant/*" element={<Restaurant />} />
-      
-      {/* Owner Portal Standalone Routes */}
-      <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-      <Route path="/owner/menu" element={<OwnerMenu />} />
-      <Route path="/owner/analytics" element={<OwnerAnalytics />} />
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/' || location.pathname === '/login';
 
-      <Route path="/admin/add/restaurant" element={<Admin />} />
-      <Route path="/*" element={<Home />} />
-    </Routes>
+  return (
+    <div className={`app-container ${!isAuthPage ? 'global-bg' : ''}`}>
+      <Routes>
+        <Route index element={<LoginRegisterForm />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/login" element={<LoginRegisterForm />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/fooditems/*" element={<FoodItems />} />
+        <Route path="/restos" element={<Restos />} />
+        <Route path="/offers" element={<Offers />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/tracking" element={<Tracking />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/restaurant/*" element={<Restaurant />} />
+        
+        {/* Owner Portal Standalone Routes */}
+        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+        <Route path="/owner/menu" element={<OwnerMenu />} />
+        <Route path="/owner/analytics" element={<OwnerAnalytics />} />
+
+        <Route path="/admin/add/restaurant" element={<Admin />} />
+        <Route path="/*" element={<Home />} />
+      </Routes>
+    </div>
   );
 }
