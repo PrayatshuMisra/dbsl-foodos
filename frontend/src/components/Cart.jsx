@@ -4,9 +4,11 @@ import Alert from "@mui/material/Alert";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useState } from "react";
 import Backdrop from "@mui/material/Backdrop";
-import CircularProgress from "@mui/material/CircularProgress";import { supabase } from '../supabaseClient';
+import CircularProgress from "@mui/material/CircularProgress";
+import { supabase } from '../supabaseClient';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { generateReceipt } from '../utils/pdfGenerator';
 
 export default function Cart({
   name,
@@ -132,22 +134,50 @@ export default function Cart({
       if (error) throw error;
       
       setPaymentSuccessfulAlert(true);
+      
+      // Generate receipt
+      generateReceipt({
+        orderId: data || Math.floor(Math.random() * 100000), // if rpc returns id, else random
+        customerName: name,
+        phone: mobile,
+        address: address,
+        items: cartItems.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity
+        })),
+        itemTotal: itemTotal,
+        deliveryFee: DELIVERY_FEE,
+        platformFee: PLATFORM_FEE,
+        gstAmount: gstAmount,
+        discountAmount: discountAmount,
+        grandTotal: grandTotal,
+        paymentMethod: paymentOption,
+      });
+
       clearCart();
-    } catch (error) {
-      console.error("Error during handling payment:", error);
-      alert("Checkout failed. Please try again.");
-    } finally {
+
+      // Pass real order ID + total to tracking page
+      const newOrderId = data?.order_id || data;
+      const orderForTracking = {
+        id: newOrderId,
+        total: grandTotal,
+        items: cartItems.map(item => ({
+          name: item.name, quantity: item.quantity,
+          price: item.price, subtotal: item.price * item.quantity
+        }))
+      };
+      
       setTimeout(() => {
         setOpen(false);
+        navigate('/profile?tab=currentOrders', { state: { activeOrder: orderForTracking } });
       }, 2000);
-      
-      if (paymentSuccessfulAlert) {
-         setTimeout(() => {
-           navigate("/home");
-         }, 3000);
-      } else {
-        setTimeout(() => navigate("/home"), 3000); // go home anyways
-      }
+
+    } catch (error) {
+      console.error('Error during handling payment:', error);
+      alert('Checkout failed. Please try again.');
+      setOpen(false);
     }
   };
 
@@ -160,7 +190,7 @@ export default function Cart({
             severity="success"
             variant="filled"
           >
-            Payment was successful.
+            Order Confirmed! Your receipt is downloading...
           </Alert>
         </div>
       )}

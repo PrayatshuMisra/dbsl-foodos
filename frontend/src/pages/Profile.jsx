@@ -1,12 +1,13 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import OrderList from "../components/OrderList";
 import { CircularProgress } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
-import { mockOrders } from "../data/mockData";
+import CurrentOrders from "../components/CurrentOrders";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 function Sidebar({ activeTab, handleTabChange, handleLogout, name, image }) {
   return (
@@ -22,7 +23,7 @@ function Sidebar({ activeTab, handleTabChange, handleLogout, name, image }) {
       </div>
 
       <div className="flex flex-col gap-3">
-        {["profile", "orderHistory"].map((tab) => (
+        {["profile", "currentOrders", "orderHistory"].map((tab) => (
           <button
             key={tab}
             className={`rounded-lg px-4 py-3 text-left font-medium transition-colors ${
@@ -33,12 +34,13 @@ function Sidebar({ activeTab, handleTabChange, handleLogout, name, image }) {
             onClick={() => handleTabChange(tab)}
           >
             <div className="flex items-center gap-3">
-              {tab === "profile" ? (
-                <i className="ri-user-line text-lg"></i>
-              ) : (
-                <i className="ri-history-line text-lg"></i>
-              )}
-              {tab === "profile" ? "Profile Info" : "Order History"}
+              {tab === "profile" && <i className="ri-user-line text-lg"></i>}
+              {tab === "currentOrders" && <i className="ri-truck-line text-lg"></i>}
+              {tab === "orderHistory" && <i className="ri-history-line text-lg"></i>}
+              
+              {tab === "profile" && "Profile Info"}
+              {tab === "currentOrders" && "Live Tracking"}
+              {tab === "orderHistory" && "Order History"}
             </div>
           </button>
         ))}
@@ -185,16 +187,25 @@ function OrderHistory({ orderData, isLoadingOrders }) {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
-  const [userID, setUserID] = useState("");
   const [name, setName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [address, setAddress] = useState("");
   const [image, setImage] = useState("");
   const [orderData, setOrderData] = useState([]);
-  const [activeTab, setActiveTab] = useState("profile");
+  
+  const urlTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    urlTab === "currentOrders" ? "currentOrders" : "profile"
+  );
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+
+  // Real order from navigation state (passed from Cart after checkout)
+  const incomingOrder = location.state?.activeOrder || null;
+  const [activeOrder, setActiveOrder] = useState(incomingOrder);
 
   const { user, signOut } = useAuth();
 
@@ -202,50 +213,83 @@ export default function Profile() {
     window.scrollTo(0, 0);
     
     if (!user) {
-      navigate("/");
-      return;
+      // Only redirect if auth is fully resolved and there's definitively no user
+      const timer = setTimeout(() => navigate("/"), 100);
+      return () => clearTimeout(timer);
     }
 
-    const fetchUserProfile = async () => {
+    // ✅ Instant load from user_metadata — no spinner wait
+    setName(user.user_metadata?.name || user.email?.split('@')[0] || "User");
+    setMobileNumber(user.user_metadata?.phone_number || "");
+    setIsLoading(false);
+
+    // Background fetch for extra fields (address, image) from DB
+    const fetchExtraProfile = async () => {
       try {
-        const table = user.isOwner ? 'restaurant_owners' : 'customers';
+        const table   = user.isOwner ? 'restaurant_owners' : 'customers';
         const idField = user.isOwner ? 'owner_id' : 'customer_id';
         
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from(table)
-          .select('*')
+          .select('name, phone_number, contact_number, address, image_url')
           .eq(idField, user.id)
-          .single();
+          .maybeSingle();
 
         if (data) {
-          setUserID(user.id);
-          setName(data.name || user.user_metadata?.name || "User Name");
-          setMobileNumber(data.phone_number || data.contact_number || user.user_metadata?.phone_number || "");
-          setAddress(data.address || "");
-          setImage(data.image_url || "");
-          setIsLoading(false);
-        } else {
-          // Fallback if record not found
-          setName(user.user_metadata?.name || "User Name");
-          setMobileNumber(user.user_metadata?.phone_number || "");
-          setIsLoading(false);
+          if (data.name)         setName(data.name);
+          if (data.phone_number) setMobileNumber(data.phone_number);
+          if (data.contact_number) setMobileNumber(prev => prev || data.contact_number);
+          if (data.address)      setAddress(data.address);
+          if (data.image_url)    setImage(data.image_url);
         }
       } catch (err) {
-        console.error("Error fetching profile:", err);
-        setIsLoading(false);
+        // Non-fatal — metadata already shown
+        console.warn('Background profile fetch failed:', err.message);
       }
     };
 
-    fetchUserProfile();
+    fetchExtraProfile();
   }, [user, navigate]);
+
+  const fetchOrderHistory = async () => {
+    if (!user) return;
+    setIsLoadingOrders(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('order_id, total_amount, status, created_at, delivery_address')
+        .eq('customer_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      // Normalize to the shape OrderList expects
+      const normalized = (data || []).map(o => ({
+        ORDER_ID: o.order_id,
+        ORDER_TIMESTAMP: new Date(o.created_at).toLocaleString(),
+        STATUS: o.status?.charAt(0).toUpperCase() + o.status?.slice(1) || 'Placed',
+        TOTAL_AMOUNT: Number(o.total_amount),
+        items: []
+      }));
+      setOrderData(normalized);
+    } catch (err) {
+      console.error('Error fetching orders:', err.message);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
 
   const handleTabChange = async (tab) => {
     setActiveTab(tab);
-    if (tab === "orderHistory" && orderData.length === 0) {
-      // Use mock data instead of API call
-      setOrderData(mockOrders);
-      setIsLoadingOrders(false);
+    if (tab === 'orderHistory') {
+      fetchOrderHistory();
     }
+  };
+  
+  const handleLiveOrderComplete = async () => {
+    // Order status was already updated to 'delivered' inside CurrentOrders
+    setActiveOrder(null);
+    // Refresh order history from DB so the delivered order shows up
+    await fetchOrderHistory();
+    setActiveTab('orderHistory');
   };
 
   const handleLogout = async () => {
@@ -272,20 +316,42 @@ export default function Profile() {
       <div className="mx-auto flex gap-6 pt-24 pb-12 w-[90%] max-w-7xl">
         <Sidebar activeTab={activeTab} handleTabChange={handleTabChange} handleLogout={handleLogout} name={name} image={image} />
         <div className="w-[75%] h-[calc(100vh-160px)]">
-          {activeTab === "profile" ? (
-            <ProfileForm
-              name={name}
-              setName={setName}
-              mobileNumber={mobileNumber}
-              setMobileNumber={setMobileNumber}
-              address={address}
-              setAddress={setAddress}
-              isEditing={isEditing}
-              setIsEditing={setIsEditing}
-            />
-          ) : (
-            <OrderHistory orderData={orderData} isLoadingOrders={isLoadingOrders} />
-          )}
+          <ErrorBoundary onReset={() => setActiveTab('profile')}>
+            {activeTab === "profile" && (
+              <ProfileForm
+                name={name}
+                setName={setName}
+                mobileNumber={mobileNumber}
+                setMobileNumber={setMobileNumber}
+                address={address}
+                setAddress={setAddress}
+                isEditing={isEditing}
+                setIsEditing={setIsEditing}
+              />
+            )}
+            
+            {activeTab === "currentOrders" && (
+              activeOrder ? (
+                <CurrentOrders
+                  orderId={activeOrder.id}
+                  orderTotal={activeOrder.total}
+                  onOrderComplete={handleLiveOrderComplete}
+                />
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center h-full flex flex-col items-center justify-center">
+                  <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 text-3xl mb-4">
+                    <i className="ri-truck-line"></i>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">No Active Orders</h2>
+                  <p className="text-gray-500">Your live delivery tracker will appear here after you place an order.</p>
+                </div>
+              )
+            )}
+            
+            {activeTab === "orderHistory" && (
+              <OrderHistory orderData={orderData} isLoadingOrders={isLoadingOrders} />
+            )}
+          </ErrorBoundary>
         </div>
       </div>
     </div>

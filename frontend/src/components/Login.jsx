@@ -1,108 +1,96 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "../supabaseClient";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isCooldown, setIsCooldown] = useState(false);
-  const navigate = useNavigate();
   const { signIn } = useAuth();
-
-  // ✅ Cooldown duration (in milliseconds)
-  const COOLDOWN_DURATION = 3000;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (isCooldown) return; // Prevent multiple submissions
+    if (loading) return;
 
     setLoading(true);
-    setIsCooldown(true); // Enable cooldown
+    setError(null);
 
     try {
-      const { data, error: authError } = await signIn({ email, password });
-      
-      if (!authError && data?.user) {
-        setSuccess("Login successful!");
-        setError(null);
-        
-        // Check if user is an owner
-        const { data: ownerData } = await supabase
-          .from('restaurant_owners')
-          .select('owner_id')
-          .eq('owner_id', data.user.id)
-          .single();
-          
-        if (ownerData) {
-          navigate("/owner/dashboard");
-        } else {
-          navigate("/home");
-        }
-      } else {
-        setError(authError.message || "Invalid credentials");
-        setSuccess(null);
+      const { error: authError } = await signIn({ email, password });
+      if (authError) {
+        setError(authError.message || "Invalid email or password.");
+        setLoading(false);
       }
+      // ✅ On success: do NOT navigate here.
+      // AuthContext's enrichUser will set user → LoginRegisterForm's useEffect redirects automatically.
+      // setLoading stays true briefly while auth resolves (gives a nice loading feel).
     } catch (err) {
-      console.error("Error during login:", err);
-      setError("An error occurred. Please try again.");
-      setSuccess(null);
-    } finally {
+      console.error("Login error:", err);
+      setError("An unexpected error occurred. Please try again.");
       setLoading(false);
-
-      // ✅ Set cooldown for button to prevent spam
-      setTimeout(() => {
-        setIsCooldown(false);
-      }, COOLDOWN_DURATION);
     }
   };
 
   return (
     <div>
       <form onSubmit={handleSubmit} className="mx-auto w-full max-w-sm">
-        <div className="mb-2">
-          <label htmlFor="email" className="block text-gray-700">
+        <div className="mb-4">
+          <label htmlFor="email" className="block text-gray-700 font-medium mb-1">
             Email
           </label>
           <input
+            id="email"
             type="email"
             name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 w-full appearance-none rounded-md border p-2"
+            disabled={loading}
+            className="mt-1 w-full appearance-none rounded-lg border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-gray-50 transition"
           />
         </div>
 
-        <div className="mb-2">
-          <label htmlFor="password" className="block text-gray-700">
+        <div className="mb-4">
+          <label htmlFor="password" className="block text-gray-700 font-medium mb-1">
             Password
           </label>
           <input
+            id="password"
             type="password"
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="mt-1 w-full rounded-md border p-2"
+            disabled={loading}
+            className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-gray-50 transition"
           />
         </div>
 
-        {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
-        {success && <div className="mb-2 text-sm text-green-600">{success}</div>}
+        {error && (
+          <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-600">
+            {error}
+          </div>
+        )}
 
-        <div className="my-4">
+        <div className="mt-6">
           <button
             type="submit"
-            disabled={loading || isCooldown}
-            className={`w-full rounded-md bg-amber-500 px-4 py-2 text-white transition ${(loading || isCooldown) ? "cursor-not-allowed bg-amber-300" : "hover:bg-amber-600"
-              }`}
+            disabled={loading}
+            className={`w-full rounded-lg px-4 py-3 font-semibold text-white transition-all ${
+              loading
+                ? "bg-amber-400 cursor-not-allowed"
+                : "bg-amber-500 hover:bg-amber-600 hover:shadow-md active:scale-[0.98]"
+            }`}
           >
-            {loading ? "Logging in..." : isCooldown ? "Please wait..." : "Login"}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                Signing in...
+              </span>
+            ) : "Login"}
           </button>
         </div>
       </form>
