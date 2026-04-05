@@ -13,7 +13,7 @@ const STEPS = [
 
 // Manipal coordinates
 const RESTAURANT_POS = [13.3490, 74.7856];
-const HOME_POS       = [13.3600, 74.7900];
+const HOME_POS = [13.3600, 74.7900];
 
 // Interpolate position along route based on progress (0–1)
 function interpolate(start, end, t) {
@@ -24,7 +24,7 @@ function interpolate(start, end, t) {
 }
 
 export default function CurrentOrders({ orderId, orderTotal, onOrderComplete, dispatchedAt }) {
-  const mapRef     = useRef(null);   // DOM node
+  const mapRef = useRef(null);   // DOM node
   const leafletRef = useRef(null);   // L.map instance
   const bikeMarker = useRef(null);
   const completedRef = useRef(false);
@@ -98,6 +98,7 @@ export default function CurrentOrders({ orderId, orderTotal, onOrderComplete, di
     const interval = setInterval(updateProgress, 2000); // Poll every 2s
     return () => clearInterval(interval);
   }, [orderId, onOrderComplete]);
+
   useEffect(() => {
     if (!mapRef.current || leafletRef.current) return;
 
@@ -140,18 +141,18 @@ export default function CurrentOrders({ orderId, orderTotal, onOrderComplete, di
   const currentStep = STEPS[currentStepIndex];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full flex flex-col overflow-auto gap-5">
+    <div className="glass-card p-6 h-full flex flex-col overflow-auto gap-5 shadow-lg bg-black/20">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-white">
             Tracking Order <span className="text-amber-500">#{orderId || '—'}</span>
           </h2>
-          <p className="text-gray-500 text-sm mt-1">Live delivery tracking • Manipal</p>
+          <p className="text-white/70 text-sm mt-1">Live delivery tracking • Manipal</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${deliveryProgress < 100 ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-          <span className={`text-xs font-bold uppercase tracking-wider ${deliveryProgress < 100 ? 'text-green-600' : 'text-gray-400'}`}>
+          <div className={`w-2.5 h-2.5 rounded-full ${deliveryProgress < 100 ? 'bg-green-400 animate-pulse' : 'bg-white/50'}`}></div>
+          <span className={`text-xs font-bold uppercase tracking-wider ${deliveryProgress < 100 ? 'text-green-400' : 'text-white/70'}`}>
             {deliveryProgress < 100 ? 'Live Tracking' : 'Delivered'}
           </span>
         </div>
@@ -167,63 +168,63 @@ export default function CurrentOrders({ orderId, orderTotal, onOrderComplete, di
           <i className={currentStep.icon}></i>
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-gray-900 text-base">{currentStep.title}</h3>
-          <p className="text-gray-500 text-sm mt-0.5">{currentStep.detail}</p>
+          <h3 className="font-bold text-white text-base">{currentStep.title}</h3>
+          <p className="text-white/80 text-sm mt-0.5">{currentStep.detail}</p>
         </div>
         {deliveryProgress < 100 && deliveryProgress > 0 && (
           <div className="text-right flex-shrink-0">
-            <div className="text-2xl font-black text-gray-800">{Math.ceil(totalDeliveryTime * (1 - deliveryProgress/100))}s</div>
-            <div className="text-xs text-gray-400">left</div>
+            <div className="text-2xl font-black text-white">{Math.ceil(totalDeliveryTime * (1 - deliveryProgress / 100))}s</div>
+            <div className="text-xs text-white/70">left</div>
           </div>
         )}
       </div>
 
       <div className="space-y-3">
         <div>
-           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex justify-between">
-              Preparation <span>{Math.round(prepProgress)}%</span>
-           </p>
-           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-             <div className="h-full rounded-full transition-all duration-700 bg-amber-500" style={{ width: `${prepProgress}%` }} />
-           </div>
+          <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-2 flex justify-between">
+            Preparation <span className="text-white">{Math.round(prepProgress)}%</span>
+          </p>
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-700 bg-amber-500" style={{ width: `${prepProgress}%` }} />
+          </div>
         </div>
         <div>
-           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex justify-between">
-              Delivery <span>{Math.round(deliveryProgress)}%</span>
-           </p>
-           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-             <div className="h-full rounded-full transition-all duration-700 bg-blue-500" style={{ width: `${deliveryProgress}%` }} />
-           </div>
+          <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-2 flex justify-between">
+            Delivery <span className="text-white">{Math.round(deliveryProgress)}%</span>
+          </p>
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-700 bg-blue-500" style={{ width: `${deliveryProgress}%` }} />
+          </div>
         </div>
       </div>
 
       {/* Leaflet Map */}
       <div
         ref={mapRef}
-        className="rounded-xl overflow-hidden border-2 border-gray-100 flex-shrink-0"
+        className="rounded-xl overflow-hidden border border-white/10 flex-shrink-0"
         style={{ height: '280px', zIndex: 0 }}
       />
 
       {/* Timeline */}
       <div>
-        <h3 className="text-sm font-bold text-gray-700 mb-3">Delivery Timeline</h3>
+        <h3 className="text-sm font-bold text-white mb-3">Delivery Timeline</h3>
         <div className="space-y-1.5">
           {STEPS.map((step, idx) => {
-            const isDone    = idx < currentStepIndex || (idx === 3 && deliveryProgress === 100);
+            const isDone = idx < currentStepIndex || (idx === 3 && deliveryProgress === 100);
             const isCurrent = idx === currentStepIndex;
             return (
               <div
                 key={idx}
-                className={`flex items-center gap-3 p-2.5 rounded-lg transition-all duration-500 ${
-                  isCurrent ? 'border' : ''
-                } ${!isDone && !isCurrent ? 'opacity-30' : ''}`}
-                style={isCurrent ? { backgroundColor: step.color + '12', borderColor: step.color + '40' } : {}}
+                className={`flex items-center gap-3 p-2.5 rounded-lg transition-all duration-500 ${isCurrent ? 'border' : ''
+                  } ${!isDone && !isCurrent ? 'opacity-50' : ''}`}
+                style={isCurrent ? { backgroundColor: step.color + '15', borderColor: step.color + '40' } : {}}
               >
                 <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs text-white transition-all"
-                  style={{ backgroundColor: isDone || isCurrent ? step.color : '#e5e7eb' }}>
-                  {isDone ? <i className="ri-check-line text-xs"></i> : <span className="text-gray-400 font-bold text-[10px]">{idx + 1}</span>}
+                  style={{ backgroundColor: isDone || isCurrent ? step.color : 'rgba(255,255,255,0.1)' }}>
+                  {isDone ? <i className="ri-check-line text-xs"></i> : <span className="text-white/70 font-bold text-[10px]">{idx + 1}</span>}
                 </div>
-                <p className="text-xs font-semibold truncate" style={{ color: isCurrent ? step.color : isDone ? '#374151' : '#9ca3af' }}>
+                {/* Changed the hardcoded hex grays to white and white/70 */}
+                <p className="text-xs font-semibold truncate" style={{ color: isCurrent ? step.color : isDone ? 'white' : 'rgba(255,255,255,0.7)' }}>
                   {step.title}
                 </p>
                 {isCurrent && (

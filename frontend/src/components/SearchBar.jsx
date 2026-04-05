@@ -35,7 +35,7 @@ export default function SearchBar({ onSearch, className = '', autoFocus = false 
   const handleInputChange = (event) => {
     const value = event.target.value;
     setSearchQuery(value);
-    
+
     // Generate suggestions based on input
     if (value.length > 0) {
       const filtered = mockRecentSearches
@@ -81,10 +81,9 @@ export default function SearchBar({ onSearch, className = '', autoFocus = false 
       <form onSubmit={handleSubmit} className="relative group">
         <div className="relative flex items-center">
           {/* Main Search Icon */}
-          <FiSearch className={`absolute left-5 w-5 h-5 transition-colors duration-300 z-10 ${
-            isFocused ? 'text-orange-500' : 'text-gray-400 group-hover:text-orange-400'
-          }`} />
-          
+          <FiSearch className={`absolute left-5 w-5 h-5 transition-colors duration-300 z-10 ${isFocused ? 'text-orange-500' : 'text-gray-400 group-hover:text-orange-400'
+            }`} />
+
           <input
             type="text"
             placeholder="Search for restaurants or dishes..."
@@ -94,14 +93,14 @@ export default function SearchBar({ onSearch, className = '', autoFocus = false 
             className={`w-full pl-14 pr-12 py-4 rounded-2xl border-2 transition-all duration-300
               focus:outline-none focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500
               bg-white text-gray-900 placeholder-gray-400
-              ${isFocused 
-                ? 'border-orange-500 shadow-[0_8px_30px_rgb(249,115,22,0.12)]' 
+              ${isFocused
+                ? 'border-orange-500 shadow-[0_8px_30px_rgb(249,115,22,0.12)]'
                 : 'border-gray-100 shadow-sm hover:border-orange-200 hover:shadow-md'
               }`}
             autoComplete="off"
             autoFocus={autoFocus}
           />
-          
+
           {/* Clear Button */}
           {searchQuery && (
             <button

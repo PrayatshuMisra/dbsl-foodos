@@ -7,7 +7,7 @@ import { yellow } from "@mui/material/colors";
 const RestoCard = ({ resto }) => {
   return (
     <Link
-      to={`/restaurant/${resto.restaurant_id}`} 
+      to={`/restaurant/${resto.restaurant_id}`}
       className="hover:no-underline"
       state={{ id: resto.restaurant_id }}
     >
@@ -15,7 +15,7 @@ const RestoCard = ({ resto }) => {
         {/* ✅ Restaurant Image */}
         <div className="relative h-2/3 overflow-hidden">
           <img
-            src={resto.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&q=80'} 
+            src={resto.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&q=80'}
             alt={resto.restaurant_name}
             className="h-full w-full object-cover"
           />

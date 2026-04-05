@@ -68,7 +68,7 @@ function Register({ onSuccess }) {
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="mx-auto w-full max-w-sm space-y-4">
-        
+
         {/* Name Field */}
         <div>
           <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -208,11 +208,10 @@ function Register({ onSuccess }) {
           <button
             type="submit"
             disabled={loading || success}
-            className={`w-full rounded-xl px-4 py-3.5 font-bold text-white transition-all transform flex items-center justify-center ${
-              loading || success
+            className={`w-full rounded-xl px-4 py-3.5 font-bold text-white transition-all transform flex items-center justify-center ${loading || success
                 ? "bg-amber-400 cursor-not-allowed"
                 : "bg-amber-500 hover:bg-amber-600 shadow-[0_4px_14px_0_rgba(245,158,11,0.39)] hover:shadow-[0_6px_20px_rgba(245,158,11,0.23)] hover:-translate-y-0.5"
-            }`}
+              }`}
           >
             {loading ? (
               <span className="flex items-center gap-2">

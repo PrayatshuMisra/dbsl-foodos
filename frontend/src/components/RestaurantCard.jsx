@@ -37,7 +37,7 @@ const RestaurantCard = ({ restaurant, index }) => {
       animate="visible"
       whileHover="hover"
       variants={cardVariants}
-      className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 border border-gray-100"
+      className="group glass-card overflow-hidden hover:shadow-xl transition-all duration-300 transform"
     >
       <Link to={`/restaurant/${restaurant.restaurant_id || '1'}`} className="block" state={{ id: restaurant.restaurant_id }}>
         {/* Restaurant Image */}
@@ -47,10 +47,10 @@ const RestaurantCard = ({ restaurant, index }) => {
             alt={restaurant.restaurant_name}
             className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
           />
-          
+
           {/* Favorite Button */}
-          <button 
-            className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-md hover:bg-amber-50 transition-colors"
+          <button
+            className="absolute top-3 right-3 p-2 bg-white/10 backdrop-blur-md rounded-full shadow-md hover:bg-white/20 transition-colors border border-white/20"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -58,46 +58,46 @@ const RestaurantCard = ({ restaurant, index }) => {
             }}
             aria-label="Add to favorites"
           >
-            <FiHeart className="w-5 h-5 text-gray-400 group-hover:text-amber-500" />
+            <FiHeart className="w-5 h-5 text-white/70 group-hover:text-amber-500" />
           </button>
-          
+
           {/* Rating Badge */}
           <div className="absolute bottom-3 left-3 bg-white text-amber-500 px-2 py-1 rounded-full text-sm font-semibold flex items-center gap-1 shadow-md">
             <FiStar className="fill-current" />
             {restaurant.rating || rating}
           </div>
         </div>
-        
+
         {/* Restaurant Info */}
         <div className="p-4">
           <div className="flex justify-between items-start gap-2">
-            <h3 className="font-bold text-lg text-gray-900 truncate">
+            <h3 className="font-bold text-lg text-white truncate">
               {restaurant.restaurant_name || 'Restaurant Name'}
             </h3>
-            <span className="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full whitespace-nowrap">
+            <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-500 rounded-full whitespace-nowrap border border-amber-500/20 font-semibold">
               {restaurant.cuisine_type || 'International'}
             </span>
           </div>
-          
-          <div className="flex items-center text-sm text-gray-500 mt-1">
+
+          <div className="flex items-center text-sm text-slate-400 mt-1">
             <FiMapPin className="w-3.5 h-3.5 mr-1" />
             <span className="truncate">{restaurant.location || 'City, Country'}</span>
           </div>
-          
-          <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center text-sm">
-            <div className="flex items-center text-gray-600">
+
+          <div className="mt-3 pt-3 border-t border-white/5 flex justify-between items-center text-sm">
+            <div className="flex items-center text-slate-300">
               <FiClock className="w-4 h-4 mr-1" />
               {restaurant.deliveryTime || deliveryTime + ' min'}
             </div>
-            <div className="text-gray-600">
+            <div className="text-slate-300">
               ${deliveryFee} delivery
             </div>
             <div className="text-amber-500 font-medium">
               Open Now
             </div>
           </div>
-          
-          <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
             <span>{ratingCount}+ ratings</span>
             <span className="flex items-center">
               <span className="w-2 h-2 rounded-full bg-green-500 mr-1"></span>

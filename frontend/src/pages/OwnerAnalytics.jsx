@@ -4,14 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import OwnerNav from '../components/OwnerNav';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, PieChart, Pie, AreaChart, Area, Legend
 } from 'recharts';
-import { 
-  FiTrendingUp, 
-  FiUsers, 
-  FiShoppingBag, 
+import {
+  FiTrendingUp,
+  FiUsers,
+  FiShoppingBag,
   FiCalendar,
   FiDownload,
   FiArrowUpRight,
@@ -92,7 +92,7 @@ export default function OwnerAnalytics() {
       const hour = new Date(order.order_date).getHours();
       hours[hour]++;
     });
-    
+
     // Transform to readable format (12 AM, 1 AM, etc.)
     return hours.map((count, hr) => ({
       name: hr === 0 ? '12 AM' : hr === 12 ? '12 PM' : hr > 12 ? `${hr - 12} PM` : `${hr} AM`,
@@ -111,7 +111,7 @@ export default function OwnerAnalytics() {
     orders.forEach(order => {
       customerOrderCounts[order.customer_id] = (customerOrderCounts[order.customer_id] || 0) + 1;
     });
-    
+
     let returning = 0;
     let newCust = 0;
     Object.values(customerOrderCounts).forEach(count => {
@@ -135,7 +135,7 @@ export default function OwnerAnalytics() {
       o.order_status
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," 
+    const csvContent = "data:text/csv;charset=utf-8,"
       + headers.join(",") + "\n"
       + rows.map(e => e.join(",")).join("\n");
 
@@ -161,18 +161,18 @@ export default function OwnerAnalytics() {
 
   if (!authLoading && user && user.isOwner === false && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-transparent flex flex-col">
         <Navbar />
         <div className="flex-grow flex items-center justify-center p-6 mt-20">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center max-w-md">
+          <div className="glass-card shadow-xl p-12 text-center max-w-md">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6">
               <FiXCircle />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-500">You don't have permission to view business analytics. This area is reserved for restaurant partners.</p>
-            <button 
+            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+            <p className="text-slate-400">You don't have permission to view business analytics. This area is reserved for restaurant partners.</p>
+            <button
               onClick={() => window.location.href = '/home'}
-              className="mt-8 bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition-all"
+              className="mt-8 bg-white/10 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-white/20 border border-white/10 transition-all"
             >
               Back to Home
             </button>
@@ -184,53 +184,53 @@ export default function OwnerAnalytics() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-transparent flex flex-col">
       <Navbar />
       <div className="mx-auto flex gap-6 pt-24 pb-12 w-[90%] max-w-7xl flex-grow font-outfit">
         <OwnerNav />
         <div className="w-[75%] space-y-8">
           {/* Header */}
-          <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="glass-card p-8 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight">Business Intelligence</h1>
-              <p className="text-gray-500 mt-1 font-medium tracking-tight">Advanced sales analytics and growth insights</p>
+              <h1 className="text-3xl font-bold text-white leading-tight">Business Intelligence</h1>
+              <p className="text-slate-400 mt-1 font-medium tracking-tight">Advanced sales analytics and growth insights</p>
             </div>
             <div className="flex items-center gap-3">
-               <button 
+              <button
                 onClick={handleExportCSV}
                 className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg font-bold text-xs hover:bg-gray-800 transition-all shadow-sm"
-               >
-                 <FiDownload /> Export CSV
-               </button>
-               <select 
-                 value={timeRange} 
-                 onChange={(e) => setTimeRange(e.target.value)}
-                 className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 font-bold text-xs focus:ring-2 focus:ring-amber-500 outline-none"
-               >
-                  <option value="24h">Last 24 Hours</option>
-                  <option value="7d">Last 7 Days</option>
-                  <option value="30d">Last 30 Days</option>
-               </select>
+              >
+                <FiDownload /> Export CSV
+              </button>
+ <select
+  value={timeRange}
+  onChange={(e) => setTimeRange(e.target.value)}
+  className="bg-black text-white border border-white/10 rounded-lg px-4 py-2.5 font-bold text-xs focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
+>
+  <option className="bg-gray-900 text-white" value="24h">Last 24 Hours</option>
+  <option className="bg-gray-900 text-white" value="7d">Last 7 Days</option>
+  <option className="bg-gray-900 text-white" value="30d">Last 30 Days</option>
+</select>
             </div>
           </div>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {(loading ? [1,2,3,4] : stats).map((stat, i) => (
-              <motion.div 
+            {(loading ? [1, 2, 3, 4] : stats).map((stat, i) => (
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                key={loading ? i : stat.name} 
-                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 overflow-hidden relative"
+                key={loading ? i : stat.name}
+                className="glass-card p-6 shadow-md flex items-center gap-4 overflow-hidden relative"
               >
                 {loading ? (
                   <div className="w-full flex items-center gap-4">
-                     <div className="w-12 h-12 bg-gray-100 rounded-lg animate-pulse"></div>
-                     <div className="space-y-2 flex-grow">
-                        <div className="h-2 w-12 bg-gray-100 rounded animate-pulse"></div>
-                        <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
-                     </div>
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg animate-pulse"></div>
+                    <div className="space-y-2 flex-grow">
+                      <div className="h-2 w-12 bg-gray-100 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -238,9 +238,9 @@ export default function OwnerAnalytics() {
                       <i className={stat.icon}></i>
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{stat.name}</p>
-                      <h3 className="text-lg font-bold text-gray-900">{stat.value}</h3>
-                      <span className="text-[10px] font-bold text-green-500">{stat.change}</span>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">{stat.name}</p>
+                      <h3 className="text-lg font-bold text-white">{stat.value}</h3>
+                      <span className="text-[10px] font-bold text-green-400">{stat.change}</span>
                     </div>
                   </>
                 )}
@@ -250,114 +250,165 @@ export default function OwnerAnalytics() {
 
           {/* Charts Row 1 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm min-h-[350px] relative overflow-hidden">
-               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Revenue Stream</h3>
-               <div className="h-64 w-full">
-                  {loading ? (
-                    <div className="w-full h-full bg-gray-50 animate-pulse rounded-lg flex flex-col justify-end p-4 gap-2">
-                       <div className="h-[60%] w-full bg-gray-100 rounded"></div>
-                       <div className="h-4 w-full flex gap-4">
-                          {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-full flex-grow bg-gray-100 rounded"></div>)}
-                       </div>
+            <div className="glass-card p-6 shadow-lg min-h-[350px] relative overflow-hidden border-white/10">
+              <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-wider">Revenue Stream</h3>
+              <div className="h-64 w-full">
+                {loading ? (
+                  <div className="w-full h-full bg-gray-50 animate-pulse rounded-lg flex flex-col justify-end p-4 gap-2">
+                    <div className="h-[60%] w-full bg-gray-100 rounded"></div>
+                    <div className="h-4 w-full flex gap-4">
+                      {[1, 2, 3, 4, 5, 6, 7].map(i => <div key={i} className="h-full flex-grow bg-gray-100 rounded"></div>)}
                     </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                       <AreaChart data={revenueData}>
-                          <defs>
-                             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.1}/>
-                                <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
-                             </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 'bold'}} />
-                          <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 'bold'}} />
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                          <Area type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-                       </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-               </div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={revenueData}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.1} />
+                          <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 'bold' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 'bold' }} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                      <Area type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
 
-            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm min-h-[350px] relative overflow-hidden">
-               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Popular Dishes</h3>
-               <div className="h-64 w-full">
-                  {loading ? (
-                    <div className="space-y-4 pt-4">
-                       {[1,2,3,4,5].map(i => (
-                         <div key={i} className="flex items-center gap-4">
-                            <div className="h-2 w-16 bg-gray-100 rounded"></div>
-                            <div className="h-4 flex-grow bg-gray-100 rounded mr-12" style={{width: `${100 - i*15}%`}}></div>
-                         </div>
-                       ))}
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                       <BarChart data={dishData} layout="vertical" margin={{ left: 20 }}>
-                          <XAxis type="number" hide />
-                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1F2937', fontSize: 10, fontWeight: 'bold'}} width={80} />
-                          <Tooltip />
-                          <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={20}>
-                             {dishData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                          </Bar>
-                       </BarChart>
-                    </ResponsiveContainer>
-                  )}
-               </div>
-            </div>
+            <div className="glass-card p-6 shadow-lg min-h-[350px] relative overflow-hidden border-white/10">
+  <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-wider">Popular Dishes</h3>
+  <div className="h-64 w-full">
+    {loading ? (
+      <div className="space-y-4 pt-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center gap-4">
+            <div className="h-2 w-16 bg-white/20 rounded"></div>
+            <div
+              className="h-4 flex-grow bg-white/20 rounded mr-12"
+              style={{ width: `${100 - i * 15}%` }}
+            ></div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={dishData} layout="vertical" margin={{ left: 20 }}>
+          {/* Added white tick styling, but kept 'hide' just in case you want it hidden */}
+          <XAxis 
+            type="number" 
+            hide 
+            tick={{ fill: '#FFFFFF', fontSize: 10 }} 
+          />
+          
+          {/* Changed fill color to #FFFFFF */}
+          <YAxis
+            dataKey="name"
+            type="category"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}
+            width={80}
+          />
+          
+          <Tooltip 
+            cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }} 
+            contentStyle={{ backgroundColor: '#1f2937', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} 
+            itemStyle={{ color: '#fff' }}
+          />
+          
+          <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={20}>
+            {dishData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    )}
+  </div>
+</div>
           </div>
 
           {/* Charts Row 2 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
-            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col min-h-[350px]">
-               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Customer Loyalty</h3>
-               <div className="h-64 w-full">
+            <div className="glass-card p-6 shadow-lg flex flex-col min-h-[350px] border-white/10">
+              <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-wider">Hourly Order Traffic</h3>
+              <div className="h-64 w-full">
+                {loading ? (
+                  <div className="w-full h-full bg-slate-800/50 animate-pulse rounded-lg flex items-end p-4 gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                      <div key={i} className="flex-grow bg-slate-700/50 rounded-t" style={{ height: `${Math.random() * 60 + 20}%` }}></div>
+                    ))}
+                  </div>
+                ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                        <Pie
-                          data={customerLoyaltyData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {customerLoyaltyData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index === 0 ? '#F59E0B' : '#1F2937'} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend verticalAlign="bottom" height={36}/>
-                     </PieChart>
+                    <BarChart data={peakHoursData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#94A3B8', fontSize: 9, fontWeight: 'bold' }} 
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#94A3B8', fontSize: 9, fontWeight: 'bold' }} 
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#0F172A', 
+                          borderRadius: '12px', 
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)',
+                          color: '#fff' 
+                        }}
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      />
+                      <Bar 
+                        dataKey="value" 
+                        name="Orders"
+                        fill="#F59E0B" 
+                        radius={[4, 4, 0, 0]} 
+                        barSize={30}
+                      >
+                        {peakHoursData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.value > 5 ? '#F59E0B' : '#D97706'} opacity={0.8} />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
-               </div>
+                )}
+              </div>
             </div>
 
             <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-8 rounded-xl shadow-lg relative overflow-hidden flex flex-col justify-between">
-               <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <i className="ri-flashlight-line text-9xl"></i>
-               </div>
-               <div className="relative z-10 space-y-4">
-                  <h3 className="text-2xl font-bold uppercase tracking-tighter flex items-center gap-2">
-                    <i className="ri-magic-line"></i> AI Smart Insights
-                  </h3>
-                  <p className="text-sm font-medium leading-relaxed opacity-90">
-                    "Peak ordering occurs between 7 PM and 9 PM. Your currently busiest dish is '{dishData[0]?.name || 'N/A'}'. 
-                    <br/><br/>
-                    <strong className="block text-white">Action Plan:</strong>
-                    {customerLoyaltyData[0].value > customerLoyaltyData[1].value 
-                      ? "High customer retention! Launch a 'Loyalty Club' coupon to reward your regulars."
-                      : "Lots of new faces! Offer a 'First Order' discount to convert them into regulars."}
-                  </p>
-               </div>
-               <button 
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <i className="ri-flashlight-line text-9xl"></i>
+              </div>
+              <div className="relative z-10 space-y-4">
+                <h3 className="text-2xl font-bold uppercase tracking-tighter flex items-center gap-2">
+                  <i className="ri-magic-line"></i> AI Smart Insights
+                </h3>
+                <p className="text-sm font-medium leading-relaxed opacity-90">
+                  "Peak ordering occurs between 7 PM and 9 PM. Your currently busiest dish is '{dishData[0]?.name || 'N/A'}'.
+                  <br /><br />
+                  <strong className="block text-white">Action Plan:</strong>
+                  {customerLoyaltyData[0].value > customerLoyaltyData[1].value
+                    ? "High customer retention! Launch a 'Loyalty Club' coupon to reward your regulars."
+                    : "Lots of new faces! Offer a 'First Order' discount to convert them into regulars."}
+                </p>
+              </div>
+              <button
                 onClick={() => window.print()}
                 className="relative z-10 w-fit mt-8 px-6 py-2.5 bg-white text-amber-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all shadow-xl shadow-amber-900/20"
-               >
-                  Generate PDF Report
-               </button>
+              >
+                Generate PDF Report
+              </button>
             </div>
           </div>
         </div>

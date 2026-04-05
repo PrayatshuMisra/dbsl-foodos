@@ -20,22 +20,22 @@ export default function Cart({
   const { user } = useAuth();
   const [paymentSuccessfulAlert, setPaymentSuccessfulAlert] = useState(false);
   const [open, setOpen] = useState(false);
-  
+
   // Special Instructions State
   const [itemInstructions, setItemInstructions] = useState({});
-  
+
   // Coupon & Billing State
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
-  
+
   // Billing Constants
   const DELIVERY_FEE = cartTotal > 0 ? 40 : 0;
   const PLATFORM_FEE = cartTotal > 0 ? 5 : 0;
   const GST_RATE = 0.05;
   const itemTotal = cartTotal;
   const gstAmount = itemTotal * GST_RATE;
-  
+
   let discountAmount = 0;
   if (appliedCoupon) {
     if (appliedCoupon.discount_type === "PERCENTAGE") {
@@ -44,36 +44,34 @@ export default function Cart({
       discountAmount = appliedCoupon.discount_value;
     }
   }
-  
+
   const grandTotal = Math.max(0, itemTotal + gstAmount + DELIVERY_FEE + PLATFORM_FEE - discountAmount).toFixed(2);
-  
+
   const handleApplyCoupon = async () => {
     setCouponError("");
     if (!couponInput) return;
-    
-    // Check DB for coupon
+
     const { data: coupon, error } = await supabase
       .from('coupons')
       .select('*')
       .eq('coupon_code', couponInput.toUpperCase())
       .single();
-      
+
     if (error || !coupon) {
       setCouponError("Invalid coupon code.");
       return;
     }
-    
-    // Check constraints
+
     if (new Date(coupon.expiry_date) < new Date()) {
       setCouponError("This coupon has expired.");
       return;
     }
-    
+
     if (itemTotal < coupon.minimum_order_value) {
       setCouponError(`Add items worth ₹${(coupon.minimum_order_value - itemTotal).toFixed(2)} more to use this coupon.`);
       return;
     }
-    
+
     setAppliedCoupon(coupon);
     setCouponInput("");
   };
@@ -97,7 +95,6 @@ export default function Cart({
     let userConfirm = window.confirm(`Removing ${name}!`);
     if (userConfirm) {
       removeFromCart(id);
-      // Clean up instructions
       const newInst = { ...itemInstructions };
       delete newInst[id];
       setItemInstructions(newInst);
@@ -123,7 +120,6 @@ export default function Cart({
     handleOpen();
 
     try {
-      // Map to JSON for RPC function
       const orderItems = cartItems.map((item) => ({
         item_id: item.id,
         quantity: item.quantity,
@@ -131,7 +127,6 @@ export default function Cart({
         instructions: itemInstructions[item.id] || ""
       }));
 
-      // Call Supabase RPC
       const { data, error } = await supabase.rpc('place_order', {
         p_customer_id: user.id,
         p_restaurant_id: restaurantId,
@@ -142,12 +137,11 @@ export default function Cart({
       });
 
       if (error) throw error;
-      
+
       setPaymentSuccessfulAlert(true);
-      
-      // Generate receipt
+
       generateReceipt({
-        orderId: data || Math.floor(Math.random() * 100000), // if rpc returns id, else random
+        orderId: data || Math.floor(Math.random() * 100000),
         customerName: name,
         phone: mobile,
         address: address,
@@ -168,7 +162,6 @@ export default function Cart({
 
       clearCart();
 
-      // Pass real order ID + total to tracking page
       const newOrderId = data?.order_id || data;
       const orderForTracking = {
         id: newOrderId,
@@ -178,7 +171,7 @@ export default function Cart({
           price: item.price, subtotal: item.price * item.quantity
         }))
       };
-      
+
       setTimeout(() => {
         setOpen(false);
         navigate('/profile?tab=currentOrders', { state: { activeOrder: orderForTracking } });
@@ -192,7 +185,7 @@ export default function Cart({
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col w-full h-full">
       {paymentSuccessfulAlert && (
         <div className="absolute top-0 right-0 z-50 mb-4 w-full">
           <Alert
@@ -205,77 +198,78 @@ export default function Cart({
         </div>
       )}
 
-      {/* ITEMS LIST - Now Scrollable to save vertical space */}
-      <div className="mb-4 flex-shrink min-h-[150px]">
-        <h2 className="mb-3 text-lg font-bold text-gray-900 border-l-4 border-amber-500 pl-3">Order Items</h2>
-        
-        {/* Scrollable Container Addition */}
-        <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+      {/* ITEMS LIST - Natural Flowing */}
+      <div className="mb-6">
+        <h2 className="mb-4 text-lg font-bold text-white border-l-4 border-amber-500 pl-3">
+          Order Items
+        </h2>
+
+        {/* Removed the scrolling restrictions. Items will stack naturally here */}
+        <div className="space-y-3">
           {cartItems.length ? (
             cartItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden"
+                className="bg-white/5 rounded-xl border border-white/10 overflow-hidden"
               >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 gap-3">
                   <div className="flex-1 w-full sm:w-auto">
-                    <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
-                    <p className="text-xs text-gray-500">₹{item.price} each</p>
+                    <h3 className="font-semibold text-white text-sm">{item.name}</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">₹{item.price} each</p>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                    <div className="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden h-8">
-                      <button 
+                    <div className="flex items-center bg-white/5 rounded-lg border border-white/10 shadow-sm overflow-hidden h-8">
+                      <button
                         onClick={() => decreaseQuantity(item.id)}
-                        className="px-2.5 h-full bg-amber-50 text-amber-600 hover:bg-amber-100 font-medium transition-colors"
+                        className="px-2.5 h-full text-amber-500 hover:bg-white/10 font-medium transition-colors"
                       >
                         -
                       </button>
-                      <span className="px-2 font-medium min-w-[2rem] text-center text-sm">{item.quantity}</span>
-                      <button 
+                      <span className="px-2 font-medium min-w-[2rem] text-center text-sm text-white">{item.quantity}</span>
+                      <button
                         onClick={() => increaseQuantity(item.id)}
-                        className="px-2.5 h-full bg-amber-50 text-amber-600 hover:bg-amber-100 font-medium transition-colors"
+                        className="px-2.5 h-full text-amber-500 hover:bg-white/10 font-medium transition-colors"
                       >
                         +
                       </button>
                     </div>
-                    
-                    <div className="w-16 text-right font-bold text-gray-900 text-sm">
+
+                    <div className="w-16 text-right font-bold text-white text-sm">
                       ₹{item.price * item.quantity}
                     </div>
-                    
+
                     <button
                       onClick={() => deleteItem(item.id, item.name)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
                     >
                       <i className="ri-delete-bin-line"></i>
                     </button>
                   </div>
                 </div>
-                
-                {/* Instruction Input */}
-                <div className="px-3 pb-3 border-t border-gray-200/50 pt-2 bg-white/50">
-                   <div className="flex items-center gap-2 mb-1">
-                      <i className="ri-edit-line text-[10px] text-amber-600"></i>
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Special Note</span>
-                   </div>
-                   <input 
-                    type="text" 
+
+                <div className="px-3.5 pb-3.5 border-t border-white/5 pt-2.5 bg-black/20">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <i className="ri-edit-line text-[10px] text-amber-500"></i>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Special Note</span>
+                  </div>
+                  <input
+                    type="text"
                     placeholder="e.g. Extra spicy, no onions..."
                     value={itemInstructions[item.id] || ""}
                     onChange={(e) => updateInstruction(item.id, e.target.value)}
-                    className="w-full bg-transparent border-none outline-none text-[11px] font-medium text-gray-600 placeholder:text-gray-300 placeholder:italic"
-                   />
+                    className="w-full bg-transparent border-none outline-none text-[11px] font-medium text-slate-300 placeholder:text-slate-500 placeholder:italic focus:ring-0"
+                  />
                 </div>
               </div>
             ))
           ) : (
             <div className="text-center py-6">
-              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-500 text-xl">
-                 <i className="ri-shopping-bag-3-line"></i>
+              <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-500 text-xl">
+                <i className="ri-shopping-bag-3-line"></i>
               </div>
-              <h3 className="text-md font-medium text-gray-900 mb-1">Your cart is empty</h3>
-              <p className="text-xs text-gray-500 mb-4">Looks like you haven't added anything yet</p>
+              <h3 className="text-md font-medium text-white mb-1">Your cart is empty</h3>
+              <p className="text-xs text-slate-400 mb-4">Looks like you haven't added anything yet</p>
               <button
                 onClick={() => navigate("/home")}
                 className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors shadow-sm"
@@ -286,23 +280,23 @@ export default function Cart({
           )}
         </div>
       </div>
-      
-      {/* COUPON SECTION - Compacted */}
+
+      {/* COUPON SECTION */}
       {cartItems.length > 0 && (
-        <div className="mb-4 rounded-xl bg-white border border-gray-100 shadow-sm p-4 overflow-hidden relative flex-shrink-0">
+        <div className="mb-6 rounded-xl bg-white/5 border border-white/10 shadow-sm p-4 overflow-hidden relative">
           <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-          <h2 className="mb-3 text-sm font-bold text-gray-900 flex items-center gap-2">
+          <h2 className="mb-3 text-sm font-bold text-white flex items-center gap-2">
             <i className="ri-ticket-2-line text-amber-500 text-lg"></i> Offers
           </h2>
           {appliedCoupon ? (
-            <div className="flex justify-between items-center bg-green-50 text-green-800 p-3 rounded-lg border border-green-200">
+            <div className="flex justify-between items-center bg-green-500/10 text-green-400 p-3 rounded-lg border border-green-500/20">
               <div>
                 <strong className="block text-sm">'{appliedCoupon.coupon_code}' applied!</strong>
-                <span className="text-xs">You saved ₹{discountAmount.toFixed(2)}</span>
+                <span className="text-xs text-green-400/80">You saved ₹{discountAmount.toFixed(2)}</span>
               </div>
-              <button 
+              <button
                 onClick={handleRemoveCoupon}
-                className="text-red-500 text-xs font-semibold hover:underline"
+                className="text-red-400 text-xs font-semibold hover:text-red-300 transition-colors"
               >
                 REMOVE
               </button>
@@ -310,58 +304,58 @@ export default function Cart({
           ) : (
             <div>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
-                  placeholder="Coupon Code" 
-                  className="flex-grow rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold uppercase transition-colors"
+                  placeholder="Coupon Code"
+                  className="flex-grow rounded-lg border border-white/10 bg-white/5 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold uppercase transition-colors placeholder:text-slate-500"
                 />
-                <button 
+                <button
                   onClick={handleApplyCoupon}
-                  className="bg-gray-900 text-white px-4 py-2 rounded-lg font-medium text-xs hover:bg-gray-800 transition-colors"
+                  className="bg-amber-500 text-white px-4 py-2 rounded-lg font-medium text-xs hover:bg-amber-600 transition-colors"
                 >
                   APPLY
                 </button>
               </div>
               {couponError && (
-                <p className="text-red-500 text-xs mt-1.5 font-medium">{couponError}</p>
+                <p className="text-red-400 text-xs mt-1.5 font-medium">{couponError}</p>
               )}
             </div>
           )}
         </div>
       )}
 
-      {/* SUMMARY SECTION - Compacted */}
-      <div className="mb-4 rounded-xl bg-gray-50 border border-gray-100 p-4 flex-shrink-0">
-        <h2 className="mb-3 text-sm font-bold text-gray-900 border-l-4 border-amber-500 pl-3">Order Summary</h2>
-        <div className="space-y-2 text-xs text-gray-600">
+      {/* SUMMARY SECTION */}
+      <div className="mb-6 rounded-xl bg-white/5 border border-white/10 p-5">
+        <h2 className="mb-4 text-sm font-bold text-white border-l-4 border-amber-500 pl-3">Order Summary</h2>
+        <div className="space-y-2.5 text-sm text-slate-300 font-medium">
           <div className="flex justify-between items-center">
             <span>Item Total</span>
-            <span className="font-medium text-gray-900">₹{itemTotal.toFixed(2)}</span>
+            <span className="text-white">₹{itemTotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span>Delivery Fee</span>
-            <span className="font-medium text-gray-900">₹{DELIVERY_FEE.toFixed(2)}</span>
+            <span className="text-white">₹{DELIVERY_FEE.toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span>Platform Fee</span>
-            <span className="font-medium text-gray-900">₹{PLATFORM_FEE.toFixed(2)}</span>
+            <span className="text-white">₹{PLATFORM_FEE.toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span>GST & Charges</span>
-            <span className="font-medium text-gray-900">₹{gstAmount.toFixed(2)}</span>
+            <span className="text-white">₹{gstAmount.toFixed(2)}</span>
           </div>
           {appliedCoupon && (
-            <div className="flex justify-between items-center text-green-600 font-medium">
+            <div className="flex justify-between items-center text-green-400">
               <span>Discount ({appliedCoupon.coupon_code})</span>
               <span>-₹{discountAmount.toFixed(2)}</span>
             </div>
           )}
-          
-          <div className="pt-3 mt-2 border-t border-gray-200 border-dashed flex justify-between items-center text-base">
-            <span className="font-bold text-gray-900">Grand Total</span>
-            <span className="font-extrabold text-gray-900">₹{grandTotal}</span>
+
+          <div className="pt-4 mt-3 border-t border-white/10 border-dashed flex justify-between items-center text-base">
+            <span className="font-bold text-white">Grand Total</span>
+            <span className="font-extrabold text-amber-500 text-lg">₹{grandTotal}</span>
           </div>
         </div>
       </div>
@@ -369,11 +363,10 @@ export default function Cart({
       {/* PLACE ORDER BUTTON */}
       <button
         onClick={() => handlePayment()}
-        className={`w-full rounded-lg px-4 py-3.5 font-bold text-white transition-all transform flex-shrink-0 ${
-          cartItems.length
+        className={`w-full rounded-xl px-4 py-3.5 font-bold text-white transition-all transform ${cartItems.length
             ? "bg-amber-500 hover:bg-amber-600 hover:shadow-lg hover:-translate-y-0.5"
-            : "bg-gray-300 cursor-not-allowed"
-        }`}
+            : "bg-white/10 text-slate-500 cursor-not-allowed border border-white/5"
+          }`}
         disabled={!cartItems.length}
       >
         Place Order • ₹{grandTotal}
@@ -383,10 +376,10 @@ export default function Cart({
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={open}
         onClick={handleClose}
-        className="h-full"
+        className="h-full backdrop-blur-sm"
       >
         <CircularProgress color="warning" />
-        <h1 className="ml-4 text-xl">Processing...</h1>
+        <h1 className="ml-4 text-xl font-bold tracking-wide">Processing...</h1>
       </Backdrop>
     </div>
   );

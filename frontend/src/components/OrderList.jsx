@@ -27,7 +27,7 @@ function OrderDetailsModal({ order, open, handleClose }) {
 
     return (
         <Modal open={open} onClose={handleClose}>
-            <div className="bg-blur1 mx-auto mt-24 h-[75%] w-[50%] overflow-auto p-6 text-black">
+            <div className="glass-card mx-auto mt-24 h-[75%] w-[50%] overflow-auto p-8 shadow-2xl">
                 <h1 className="text-2xl">Order details for order #{order.ORDER_ID}</h1>
                 {isLoading ? (
                     <div className="mt-8 flex items-center justify-center">
@@ -36,14 +36,14 @@ function OrderDetailsModal({ order, open, handleClose }) {
                 ) : (
                     <>
                         {orderDetail.map((data, dataIndex) => (
-                            <div key={dataIndex} className="my-4 h-fit rounded bg-amber-400 p-4 shadow-lg">
-                                <p>
+                            <div key={dataIndex} className="my-4 h-fit glass-card p-4 shadow-md bg-amber-400/20">
+                                <p className="text-gray-900">
                                     <b>Dish name:</b> {data.NAME}
                                 </p>
-                                <p>
+                                <p className="text-gray-800">
                                     <b>Price:</b> ₹{data.PRICE}
                                 </p>
-                                <p>
+                                <p className="text-gray-600">
                                     <b>Date:</b> {order.ORDER_TIMESTAMP}
                                 </p>
                             </div>
@@ -75,7 +75,7 @@ export default function OrderList({ orderData }) {
             {orderData.map((order, index) => (
                 <div
                     key={index}
-                    className={`my-4 h-fit cursor-pointer rounded border-2 p-2 duration-100 hover:-translate-y-1 hover:shadow hover:shadow-amber-500 ${order.STATUS === "Failed" ? "bg-red-100" : "bg-green-100"
+                    className={`my-4 h-fit cursor-pointer glass-card p-4 transition-all hover:-translate-y-1 hover:shadow-xl ${order.STATUS === "Failed" ? "bg-red-500/10 border-red-500/20" : "bg-green-500/10 border-green-500/20"
                         }`}
                     onClick={() => handleOpen(index)}
                 >

@@ -4,11 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import OwnerNav from '../components/OwnerNav';
-import { 
-  FiShoppingBag, 
-  FiCheckCircle, 
-  FiClock, 
-  FiAlertCircle, 
+import {
+  FiShoppingBag,
+  FiCheckCircle,
+  FiClock,
+  FiAlertCircle,
   FiMapPin,
   FiPhone,
   FiTrendingUp,
@@ -24,7 +24,7 @@ export default function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Pending');
   const [trackedOrderId, setTrackedOrderId] = useState(null);
-  
+
   // Prep Time Prompt State
   const [showPrepModal, setShowPrepModal] = useState(null);
   const [prepTimeInput, setPrepTimeInput] = useState(20);
@@ -34,17 +34,17 @@ export default function OwnerDashboard() {
 
     if (user?.restaurantId) {
       fetchOrders();
-      
+
       const channel = supabase
         .channel(`restaurant-${user.restaurantId}`)
         .on(
-          'postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'orders', 
-            filter: `restaurant_id=eq.${user.restaurantId}` 
-          }, 
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `restaurant_id=eq.${user.restaurantId}`
+          },
           () => {
             fetchOrders();
           }
@@ -55,7 +55,7 @@ export default function OwnerDashboard() {
         supabase.removeChannel(channel);
       };
     } else {
-      setLoading(false); 
+      setLoading(false);
     }
   }, [user, authLoading]);
 
@@ -98,19 +98,19 @@ export default function OwnerDashboard() {
       if (status === 'Dispatched') {
         updates.dispatched_at = new Date().toISOString();
       }
-      
+
       const { error } = await supabase
         .from('orders')
         .update(updates)
         .eq('order_id', orderId);
 
       if (error) throw error;
-      
+
       // Auto-open monitor for dispatching
       if (status === 'Dispatched') {
         setTrackedOrderId(orderId);
       }
-      
+
       setShowPrepModal(null);
       fetchOrders();
     } catch (err) {
@@ -138,16 +138,16 @@ export default function OwnerDashboard() {
 
   if (!authLoading && user && user.isOwner === false && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-transparent flex flex-col">
         <Navbar />
         <div className="flex-grow flex items-center justify-center p-6 mt-20">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center max-w-md">
+          <div className="glass-card shadow-xl p-12 text-center max-w-md">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6">
               <FiXCircle />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-500">You don't have permission to access the owner dashboard. This area is reserved for restaurant partners.</p>
-            <button 
+            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+            <p className="text-slate-400">You don't have permission to access the owner dashboard. This area is reserved for restaurant partners.</p>
+            <button
               onClick={() => window.location.href = '/home'}
               className="mt-8 bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition-all"
             >
@@ -161,61 +161,63 @@ export default function OwnerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-transparent flex flex-col">
       <Navbar />
       <div className="mx-auto flex gap-6 pt-24 pb-12 w-[90%] max-w-7xl flex-grow font-outfit">
         <OwnerNav />
         <div className="w-[75%] space-y-8">
           {/* Header */}
-          <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm flex justify-between items-center">
+          <div className="glass-card p-8 shadow-lg flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight">Dashboard Overview</h1>
-              <p className="text-gray-500 mt-1 font-medium tracking-tight">Real-time restaurant performance and order management</p>
+              <h1 className="text-3xl font-bold text-white leading-tight">Dashboard Overview</h1>
+              <p className="text-slate-400 mt-1 font-medium tracking-tight">Real-time restaurant performance and order management</p>
             </div>
-            <div className="flex bg-gray-100 p-1.5 rounded-xl gap-2">
-               {['Pending', 'Dispatched', 'Completed'].map(tab => (
-                 <button
-                   key={tab}
-                   onClick={() => {
-                     setActiveTab(tab);
-                     setTrackedOrderId(null);
-                   }}
-                   className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                     activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-                   }`}
-                 >
-                   {tab === 'Pending' ? 'Live Orders' : tab}
-                 </button>
-               ))}
+            <div className="flex bg-transparent p-1.5 rounded-xl gap-2">
+              {['Pending', 'Dispatched', 'Completed'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setTrackedOrderId(null);
+                  }}
+                  className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                    activeTab === tab
+                      ? 'bg-black text-white shadow-sm'
+                      : 'bg-black text-white/70 hover:text-white'
+                  }`}
+                >
+                  {tab === 'Pending' ? 'Live Orders' : tab}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {(loading ? [1,2,3,4] : stats).map((stat, i) => (
-              <motion.div 
+            {(loading ? [1, 2, 3, 4] : stats).map((stat, i) => (
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 key={loading ? i : stat.label}
-                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 relative overflow-hidden"
+                className="glass-card p-6 shadow-md flex items-center gap-4 relative overflow-hidden"
               >
                 {loading ? (
-                   <div className="w-full flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg animate-pulse"></div>
-                      <div className="space-y-2 flex-grow">
-                         <div className="h-2 w-12 bg-gray-100 rounded animate-pulse"></div>
-                         <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
-                      </div>
-                   </div>
+                  <div className="w-full flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg animate-pulse"></div>
+                    <div className="space-y-2 flex-grow">
+                      <div className="h-2 w-12 bg-gray-100 rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-lg flex items-center justify-center text-2xl`}>
                       <i className={stat.icon}></i>
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
-                      <h3 className="text-xl font-bold text-gray-900">{stat.value}</h3>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
+                      <h3 className="text-xl font-bold text-white">{stat.value}</h3>
                     </div>
                   </>
                 )}
@@ -224,100 +226,102 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Main Feed */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex-grow min-h-[500px]">
+          <div className="glass-card shadow-lg overflow-hidden flex-grow min-h-[500px]">
             <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                 <i className="ri-list-check-2 text-amber-500"></i> {trackedOrderId ? 'Delivery Monitor' : 'Order Stream'}
-               </h3>
-               {trackedOrderId && (
-                 <button 
-                   onClick={() => setTrackedOrderId(null)}
-                   className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest flex items-center gap-1"
-                 >
-                   <i className="ri-arrow-left-line"></i> Back to Stream
-                 </button>
-               )}
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <i className="ri-list-check-2 text-amber-500"></i> {trackedOrderId ? 'Delivery Monitor' : 'Order Stream'}
+              </h3>
+              {trackedOrderId && (
+                <button
+                  onClick={() => setTrackedOrderId(null)}
+                  className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest flex items-center gap-1"
+                >
+                  <i className="ri-arrow-left-line"></i> Back to Stream
+                </button>
+              )}
             </div>
 
             <div className="p-6">
               {trackedOrderId ? (
                 <div className="h-[500px]">
-                   <CurrentOrders 
-                    orderId={trackedOrderId} 
+                  <CurrentOrders
+                    orderId={trackedOrderId}
                     orderTotal={orders.find(o => o.order_id === trackedOrderId)?.total_amount}
                     onOrderComplete={() => {
                       setTrackedOrderId(null);
                       fetchOrders();
                     }}
                     dispatchedAt={orders.find(o => o.order_id === trackedOrderId)?.dispatched_at}
-                   />
+                  />
                 </div>
               ) : loading ? (
                 <div className="space-y-4">
-                   {[1,2,3].map(i => (
-                     <div key={i} className="bg-gray-50 rounded-xl p-5 border border-gray-100 flex justify-between animate-pulse">
-                        <div className="flex gap-4">
-                           <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
-                           <div className="space-y-2">
-                              <div className="h-4 w-32 bg-gray-200 rounded"></div>
-                              <div className="h-2 w-48 bg-gray-200 rounded"></div>
-                           </div>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="bg-gray-50 rounded-xl p-5 border border-gray-100 flex justify-between animate-pulse">
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                          <div className="h-2 w-48 bg-gray-200 rounded"></div>
                         </div>
-                        <div className="h-8 w-16 bg-gray-200 rounded-full"></div>
-                     </div>
-                   ))}
+                      </div>
+                      <div className="h-8 w-16 bg-gray-200 rounded-full"></div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="space-y-4">
-                   <AnimatePresence mode="popLayout">
+                  <AnimatePresence mode="popLayout">
                     {filteredOrders.length === 0 ? (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-center py-20 text-gray-400 font-medium italic"
+                        className="text-center py-20 text-slate-500 font-medium italic"
                       >
-                         No {activeTab.toLowerCase()} orders right now.
+                        No {activeTab.toLowerCase()} orders right now.
                       </motion.div>
                     ) : (
                       filteredOrders.map(order => (
-                        <motion.div 
+                        <motion.div
                           layout
                           key={order.order_id}
-                          className="bg-gray-50 rounded-xl p-5 border border-gray-100 group transition-all hover:bg-white hover:shadow-md"
+                          className="glass-card p-5 group transition-all hover:shadow-xl bg-white/30"
                         >
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex gap-4">
-                               <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-lg">
-                                  #{order.order_id}
-                               </div>
-                               <div>
-                                  <h4 className="font-bold text-gray-900">{order.customers?.name || 'Guest'}</h4>
-                                  <p className="text-xs text-gray-500 font-medium">
-                                     {new Date(order.order_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • 
-                                     {order.delivery_address}
-                                  </p>
-                               </div>
+                              <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-lg">
+                                #{order.order_id}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-900">{order.customers?.name || 'Guest'}</h4>
+                                <p className="text-xs text-gray-500 font-medium">
+                                  {new Date(order.order_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} •
+                                  {order.delivery_address}
+                                </p>
+                              </div>
                             </div>
                             <div className="text-right">
-                               <p className="text-lg font-bold text-amber-600">₹{order.total_amount}</p>
-                               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
-                                 order.order_status === 'Pending' ? 'bg-amber-100 text-amber-600' :
-                                 order.order_status === 'Preparing' ? 'bg-blue-100 text-blue-600' :
-                                 'bg-green-100 text-green-600'
-                               }`}>
-                                 {order.order_status}
-                               </span>
+                              <p className="text-lg font-bold text-amber-600">₹{order.total_amount}</p>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                                order.order_status === 'Pending'
+                                  ? 'bg-amber-500/20 text-amber-500 border-amber-500/20'
+                                  : order.order_status === 'Preparing'
+                                  ? 'bg-blue-500/20 text-blue-500 border-blue-500/20'
+                                  : 'bg-green-500/20 text-green-500 border-green-500/20'
+                              }`}>
+                                {order.order_status}
+                              </span>
                             </div>
                           </div>
 
                           <div className="border-t border-gray-200 pt-4 flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
-                           <div className="flex-grow">
+                            <div className="flex-grow">
                               <ul className="flex flex-col gap-2">
                                 {order.order_details?.map((detail, idx) => (
                                   <li key={idx} className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xs font-bold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm">
-                                         {detail.quantity}x {detail.menu_items?.item_name}
+                                      <span className="text-xs font-bold text-white bg-white/5 px-3 py-1 rounded-full border border-white/10 shadow-sm">
+                                        {detail.quantity}x {detail.menu_items?.item_name}
                                       </span>
                                       {detail.special_instructions && (
                                         <span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 italic">
@@ -333,50 +337,50 @@ export default function OwnerDashboard() {
                                   </li>
                                 ))}
                               </ul>
-                           </div>
-                             
-                             <div className="flex gap-2">
-                                {order.order_status === 'Pending' && (
-                                  <button 
-                                    onClick={() => updateStatus(order.order_id, 'Preparing')}
-                                    className="px-6 py-2 bg-amber-500 text-white rounded-lg text-xs font-bold uppercase transition-all hover:bg-amber-600"
+                            </div>
+
+                            <div className="flex gap-2">
+                              {order.order_status === 'Pending' && (
+                                <button
+                                  onClick={() => updateStatus(order.order_id, 'Preparing')}
+                                  className="px-6 py-2 bg-amber-500 text-white rounded-lg text-xs font-bold uppercase transition-all hover:bg-amber-600"
+                                >
+                                  Accept Order
+                                </button>
+                              )}
+                              {['Confirmed', 'Preparing'].includes(order.order_status) && (
+                                <button
+                                  onClick={() => updateStatus(order.order_id, 'Dispatched')}
+                                  className="px-6 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold uppercase transition-all hover:bg-blue-600"
+                                >
+                                  Dispatch
+                                </button>
+                              )}
+                              {order.order_status === 'Dispatched' && (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setTrackedOrderId(order.order_id)}
+                                    className="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold uppercase transition-all hover:bg-gray-200 flex items-center gap-2"
                                   >
-                                     Accept Order
+                                    <i className="ri-map-pin-line text-amber-500"></i> Monitor
                                   </button>
-                                )}
-                                {['Confirmed', 'Preparing'].includes(order.order_status) && (
-                                  <button 
-                                    onClick={() => updateStatus(order.order_id, 'Dispatched')}
-                                    className="px-6 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold uppercase transition-all hover:bg-blue-600"
+                                  <button
+                                    onClick={() => updateStatus(order.order_id, 'Completed')}
+                                    className="px-6 py-2 bg-green-500 text-white rounded-lg text-xs font-bold uppercase transition-all hover:bg-green-600"
                                   >
-                                     Dispatch
+                                    Complete
                                   </button>
-                                )}
-                                {order.order_status === 'Dispatched' && (
-                                  <div className="flex gap-2">
-                                     <button 
-                                       onClick={() => setTrackedOrderId(order.order_id)}
-                                       className="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold uppercase transition-all hover:bg-gray-200 flex items-center gap-2"
-                                     >
-                                       <i className="ri-map-pin-line text-amber-500"></i> Monitor
-                                     </button>
-                                     <button 
-                                       onClick={() => updateStatus(order.order_id, 'Completed')}
-                                       className="px-6 py-2 bg-green-500 text-white rounded-lg text-xs font-bold uppercase transition-all hover:bg-green-600"
-                                     >
-                                       Complete
-                                     </button>
-                                  </div>
-                                )}
-                                {order.order_status !== 'Cancelled' && order.order_status !== 'Completed' && (
-                                   <button 
-                                     onClick={() => updateStatus(order.order_id, 'Cancelled')}
-                                     className="px-4 py-2 text-gray-400 hover:text-red-500 font-bold transition-colors text-xs"
-                                   >
-                                      Cancel
-                                   </button>
-                                )}
-                             </div>
+                                </div>
+                              )}
+                              {order.order_status !== 'Cancelled' && order.order_status !== 'Completed' && (
+                                <button
+                                  onClick={() => updateStatus(order.order_id, 'Cancelled')}
+                                  className="px-4 py-2 text-gray-400 hover:text-red-500 font-bold transition-colors text-xs"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </motion.div>
                       ))
@@ -388,60 +392,61 @@ export default function OwnerDashboard() {
           </div>
         </div>
       </div>
+
       {/* Prep Time Modal */}
       <AnimatePresence>
         {showPrepModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-             <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               onClick={() => setShowPrepModal(null)}
-               className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-             />
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.9, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-               className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full border border-gray-100"
-             >
-                <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-2xl mb-6 mx-auto">
-                   <i className="ri-time-line"></i>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Accept Order #{showPrepModal}?</h3>
-                <p className="text-gray-500 text-center text-sm mb-6 font-medium">Estimated preparation time (minutes):</p>
-                
-                <div className="flex flex-col gap-4">
-                  <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-                     <button 
-                        onClick={() => setPrepTimeInput(Math.max(5, prepTimeInput - 5))}
-                        className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-lg font-black text-gray-600 hover:bg-gray-100 transition-colors"
-                     >
-                        -
-                     </button>
-                     <span className="text-3xl font-black text-gray-900">{prepTimeInput}</span>
-                     <button 
-                        onClick={() => setPrepTimeInput(prepTimeInput + 5)}
-                        className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-lg font-black text-gray-600 hover:bg-gray-100 transition-colors"
-                     >
-                        +
-                     </button>
-                  </div>
-                  
-                  <button 
-                    onClick={() => updateStatus(showPrepModal, 'Preparing', { estimated_prep_time: prepTimeInput })}
-                    className="w-full bg-amber-500 text-white rounded-xl py-4 font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-200 hover:bg-amber-600 transition-all active:scale-95"
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPrepModal(null)}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full border border-gray-100"
+            >
+              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-2xl mb-6 mx-auto">
+                <i className="ri-time-line"></i>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Accept Order #{showPrepModal}?</h3>
+              <p className="text-gray-500 text-center text-sm mb-6 font-medium">Estimated preparation time (minutes):</p>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <button
+                    onClick={() => setPrepTimeInput(Math.max(5, prepTimeInput - 5))}
+                    className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-lg font-black text-gray-600 hover:bg-gray-100 transition-colors"
                   >
-                     Confirm & Accept
+                    -
                   </button>
-                  <button 
-                    onClick={() => setShowPrepModal(null)}
-                    className="w-full text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600"
+                  <span className="text-3xl font-black text-gray-900">{prepTimeInput}</span>
+                  <button
+                    onClick={() => setPrepTimeInput(prepTimeInput + 5)}
+                    className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-lg font-black text-gray-600 hover:bg-gray-100 transition-colors"
                   >
-                     Cancel
+                    +
                   </button>
                 </div>
-             </motion.div>
+
+                <button
+                  onClick={() => updateStatus(showPrepModal, 'Preparing', { estimated_prep_time: prepTimeInput })}
+                  className="w-full bg-amber-500 text-white rounded-xl py-4 font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-200 hover:bg-amber-600 transition-all active:scale-95"
+                >
+                  Confirm & Accept
+                </button>
+                <button
+                  onClick={() => setShowPrepModal(null)}
+                  className="w-full text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

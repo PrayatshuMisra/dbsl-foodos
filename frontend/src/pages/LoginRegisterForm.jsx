@@ -26,7 +26,7 @@ export default function LoginRegisterForm() {
   };
 
   return (
-    <div 
+    <div
       className="relative min-h-screen w-full flex items-center justify-center overflow-hidden font-sans p-4 md:p-8"
       // Added background image here
       style={{
@@ -65,7 +65,7 @@ export default function LoginRegisterForm() {
 
         {/* Right Side: Form */}
         <div className="w-full md:w-[55%] p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-white relative">
-          
+
           {/* Decorative subtle blob */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-amber-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 

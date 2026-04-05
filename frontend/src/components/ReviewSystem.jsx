@@ -80,10 +80,10 @@ export default function ReviewSystem({ restaurantId }) {
   return (
     <div className="mt-8 space-y-8">
       <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-black text-gray-900 border-l-4 border-amber-500 pl-3">
+        <h3 className="text-2xl font-black text-white border-l-4 border-amber-500 pl-3">
           Customer Reviews
         </h3>
-        <div className="flex items-center gap-2 text-sm font-bold text-gray-400 uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-sm font-bold text-white-500 uppercase tracking-widest">
           <MessageSquare size={16} />
           {reviews.length} Reviews
         </div>
@@ -91,16 +91,16 @@ export default function ReviewSystem({ restaurantId }) {
 
       {/* Review Form */}
       {user ? (
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-          <h4 className="font-bold text-gray-800 mb-4">Write your review</h4>
-          
+        <form onSubmit={handleSubmit} className="glass-card p-6 shadow-md border-white/10">
+          <h4 className="font-bold text-white mb-4">Write your review</h4>
+
           <div className="flex items-center gap-2 mb-4">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 type="button"
                 onClick={() => setNewReview({ ...newReview, rating: star })}
-                className={`transition-all ${star <= newReview.rating ? 'text-amber-500 scale-110' : 'text-gray-200'}`}
+                className={`transition-all ${star <= newReview.rating ? 'text-amber-500 scale-110' : 'text-slate-600'}`}
               >
                 <Star size={24} fill={star <= newReview.rating ? 'currentColor' : 'none'} />
               </button>
@@ -111,7 +111,7 @@ export default function ReviewSystem({ restaurantId }) {
             value={newReview.comment}
             onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
             placeholder="Share your experience with this restaurant..."
-            className="w-full h-32 p-4 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all resize-none text-gray-700"
+            className="w-full h-32 p-4 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all resize-none text-white placeholder:text-slate-500"
           />
 
           <div className="mt-4 flex items-center justify-between">
@@ -130,8 +130,8 @@ export default function ReviewSystem({ restaurantId }) {
           </div>
         </form>
       ) : (
-        <div className="bg-amber-50 rounded-2xl p-6 text-center border border-amber-100">
-          <p className="text-amber-800 font-bold">Sign in to share your thoughts!</p>
+        <div className="bg-amber-500/5 rounded-2xl p-6 text-center border border-amber-500/10">
+          <p className="text-amber-500 font-bold">Sign in to share your thoughts!</p>
         </div>
       )}
 
@@ -139,7 +139,7 @@ export default function ReviewSystem({ restaurantId }) {
       <div className="space-y-4">
         {loading ? (
           [1, 2].map(i => (
-            <div key={i} className="animate-pulse bg-gray-50 h-32 rounded-2xl"></div>
+            <div key={i} className="animate-pulse bg-white/5 h-32 rounded-2xl"></div>
           ))
         ) : reviews.length > 0 ? (
           reviews.map((review) => (
@@ -147,26 +147,26 @@ export default function ReviewSystem({ restaurantId }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               key={review.review_id}
-              className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"
+              className="glass-card p-6 shadow-sm border-white/10"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                  <div className="w-10 h-10 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500">
                     <User size={20} />
                   </div>
                   <div>
-                    <h5 className="font-bold text-gray-900">{review.customers?.name || 'Anonymous'}</h5>
-                    <p className="text-xs text-gray-400 font-medium">
+                    <h5 className="font-bold text-white">{review.customers?.name || 'Anonymous'}</h5>
+                    <p className="text-xs text-slate-500 font-medium">
                       {new Date(review.review_date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg text-amber-600 font-bold text-sm">
+                <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-lg text-amber-500 font-bold text-sm border border-amber-500/10">
                   <Star size={14} fill="currentColor" />
                   {review.rating}
                 </div>
               </div>
-              <p className="text-gray-600 leading-relaxed italic">"{review.comment}"</p>
+              <p className="text-slate-300 leading-relaxed italic">"{review.comment}"</p>
             </motion.div>
           ))
         ) : (
