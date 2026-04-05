@@ -5,8 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import RestaurantCard from '../components/RestaurantCard';
 import { supabase } from '../supabaseClient';
-import HeroImageAutoplay from '../components/HeroImageAutoplay';
-import HeroResto from '../components/HeroResto';
+import { useNavigate } from 'react-router-dom';
 // Sample categories - replace with your actual categories
 const foodCategories = [
   { id: 1, name: 'Pizza', icon: '🍕', count: 45 },
@@ -44,6 +43,15 @@ function Home() {
   const [restaurants, setRestaurants] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      navigate(`/restos?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      navigate('/restos');
+    }
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -125,8 +133,14 @@ function Home() {
                   className="w-full px-6 py-4 pr-12 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-gray-800 border-gray-200"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearch();
+                  }}
                 />
-                <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-amber-500 text-white p-2 rounded-full hover:bg-amber-600 transition-colors">
+                <button 
+                  onClick={handleSearch}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-amber-500 text-white p-2 rounded-full hover:bg-amber-600 transition-colors"
+                >
                   <FiSearch className="w-5 h-5" />
                 </button>
               </div>
@@ -157,6 +171,7 @@ function Home() {
               <motion.div
                 key={category.id}
                 whileHover={{ y: -5 }}
+                onClick={() => navigate(`/restos?category=${encodeURIComponent(category.name)}`)}
                 className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100"
               >
                 <div className="text-4xl mb-3">{category.icon}</div>
@@ -176,7 +191,10 @@ function Home() {
               <h2 className="text-3xl font-bold text-gray-900">Popular Restaurants</h2>
               <p className="text-gray-600">Most ordered from recently</p>
             </div>
-            <button className="text-amber-500 font-medium hover:underline">
+            <button 
+              onClick={() => navigate('/restos')}
+              className="text-amber-500 font-medium hover:underline"
+            >
               View All
             </button>
           </div>
@@ -241,10 +259,6 @@ function Home() {
         </div>
       </section>
       
-      <div className="mx-auto w-[90%] pb-12">
-        <HeroImageAutoplay />
-        <HeroResto restaurants={restaurants} />
-      </div>
       <Footer />
     </div>
   );

@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Cart from "../components/Cart";
 import { CircularProgress } from "@mui/material";
@@ -15,8 +16,14 @@ const Checkout = () => {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    if (!user) {
+      navigate("/");
+      return;
+    }
+    
     const fetchProfile = async () => {
       if (user) {
         try {

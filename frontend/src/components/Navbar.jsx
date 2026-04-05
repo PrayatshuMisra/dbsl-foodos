@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiUser, FiShoppingCart, FiMenu, FiX } from 'react-icons/fi';
+import { FiSearch, FiUser, FiShoppingCart, FiMenu, FiX, FiPieChart } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import SearchBar from './SearchBar';
 
 export default function Navbar() {
@@ -11,6 +12,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { cartItems } = useCart();
+  const { user } = useAuth();
   const cartItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   useEffect(() => {
@@ -23,12 +25,18 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
-    { name: 'Home', path: '/home' },
-    { name: 'Restaurants', path: '/restos' },
-    { name: 'Offers', path: '/offers' },
-    { name: 'About', path: '/about' },
-  ];
+  const navLinks = user?.isOwner 
+    ? [
+        { name: 'Dashboard', path: '/owner/dashboard' },
+        { name: 'Restaurants', path: '/restos' },
+        { name: 'About', path: '/about' },
+      ]
+    : [
+        { name: 'Home', path: '/home' },
+        { name: 'Restaurants', path: '/restos' },
+        { name: 'Offers', path: '/offers' },
+        { name: 'About', path: '/about' },
+      ];
 
   const isActive = (path) => location.pathname === path;
 
@@ -78,17 +86,21 @@ export default function Navbar() {
 
           {/* Right Side Icons */}
           <div className="flex items-center space-x-4 border-l border-gray-200 pl-4">
-            <Link 
-              to="/checkout" 
-              className="relative p-2 text-gray-600 hover:text-amber-500 hover:bg-amber-50 rounded-full transition-colors"
-            >
-              <FiShoppingCart size={22} />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartItemCount}
-                </span>
-              )}
-            </Link>
+            
+            {/* Show cart only for customers */}
+            {!user?.isOwner && (
+              <Link 
+                to="/checkout" 
+                className="relative p-2 text-gray-600 hover:text-amber-500 hover:bg-amber-50 rounded-full transition-colors"
+              >
+                <FiShoppingCart size={22} />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             <Link 
               to="/profile" 

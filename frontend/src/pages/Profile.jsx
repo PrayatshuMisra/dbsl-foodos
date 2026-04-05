@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import OrderList from "../components/OrderList";
 import { CircularProgress } from "@mui/material";
-import { mockUser, mockOrders } from "../data/mockData";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../supabaseClient";
+import { mockOrders } from "../data/mockData";
 
 function Sidebar({ activeTab, handleTabChange, handleLogout, name, image }) {
   return (
@@ -194,16 +196,48 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
+  const { user, signOut } = useAuth();
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    // Use mock data instead of API call
-    setUserID(mockUser.user_id);
-    setName(mockUser.name);
-    setMobileNumber(mockUser.mobile_number);
-    setAddress(mockUser.address);
-    setImage(mockUser.img_src);
-    setIsLoading(false);
-  }, []);
+    
+    if (!user) {
+      navigate("/");
+      return;
+    }
+
+    const fetchUserProfile = async () => {
+      try {
+        const table = user.isOwner ? 'restaurant_owners' : 'customers';
+        const idField = user.isOwner ? 'owner_id' : 'customer_id';
+        
+        const { data, error } = await supabase
+          .from(table)
+          .select('*')
+          .eq(idField, user.id)
+          .single();
+
+        if (data) {
+          setUserID(user.id);
+          setName(data.name || user.user_metadata?.name || "User Name");
+          setMobileNumber(data.phone_number || data.contact_number || user.user_metadata?.phone_number || "");
+          setAddress(data.address || "");
+          setImage(data.image_url || "");
+          setIsLoading(false);
+        } else {
+          // Fallback if record not found
+          setName(user.user_metadata?.name || "User Name");
+          setMobileNumber(user.user_metadata?.phone_number || "");
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user, navigate]);
 
   const handleTabChange = async (tab) => {
     setActiveTab(tab);
@@ -216,11 +250,11 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      // Mock logout - just navigate to login
-      navigate("/login");
+      await signOut();
+      navigate("/");
     } catch (err) {
       console.log(err);
-      navigate("/login");
+      navigate("/");
     }
   };
 

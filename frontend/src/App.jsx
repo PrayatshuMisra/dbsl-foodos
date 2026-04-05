@@ -8,13 +8,14 @@ import About from "./pages/About";
 import Tracking from "./pages/Tracking";
 import Profile from "./pages/Profile";
 import Restaurant from "./pages/Restaurant";
+import OwnerDashboard from "./pages/OwnerDashboard";
 import Admin from "./pages/Admin";
 import { Routes, Route } from "react-router-dom";
 
 export default function App() {
   return (
     <Routes>
-      <Route index element={<Home />} />
+      <Route index element={<LoginRegisterForm />} />
       <Route path="/home" element={<Home />} />
       <Route path="/login" element={<LoginRegisterForm />} />
       <Route path="/checkout" element={<Checkout />} />
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/tracking" element={<Tracking />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/restaurant/*" element={<Restaurant />} />
+      <Route path="/owner/dashboard" element={<OwnerDashboard />} />
       <Route path="/admin/add/restaurant" element={<Admin />} />
       <Route path="/*" element={<Home />} />
     </Routes>

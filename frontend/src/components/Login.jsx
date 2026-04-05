@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../supabaseClient";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -26,10 +27,22 @@ function Login() {
     try {
       const { data, error: authError } = await signIn({ email, password });
       
-      if (!authError) {
+      if (!authError && data?.user) {
         setSuccess("Login successful!");
         setError(null);
-        navigate("/home");
+        
+        // Check if user is an owner
+        const { data: ownerData } = await supabase
+          .from('restaurant_owners')
+          .select('owner_id')
+          .eq('owner_id', data.user.id)
+          .single();
+          
+        if (ownerData) {
+          navigate("/owner/dashboard");
+        } else {
+          navigate("/home");
+        }
       } else {
         setError(authError.message || "Invalid credentials");
         setSuccess(null);
@@ -50,8 +63,6 @@ function Login() {
 
   return (
     <div>
-      <h1 className="mb-2 text-center text-3xl">Login</h1>
-
       <form onSubmit={handleSubmit} className="mx-auto w-full max-w-sm">
         <div className="mb-2">
           <label htmlFor="email" className="block text-gray-700">

@@ -77,7 +77,7 @@ const DishCardView = () => {
   }, []);
 
   return (
-    <div className="mx-auto h-full  w-full max-w-sm">
+    <div className="mx-auto h-full w-full relative">
       {dishes.map((dish, index) => (
         <div
           key={index}

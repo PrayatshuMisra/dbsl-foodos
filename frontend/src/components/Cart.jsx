@@ -18,6 +18,65 @@ export default function Cart({
   const { user } = useAuth();
   const [paymentSuccessfulAlert, setPaymentSuccessfulAlert] = useState(false);
   const [open, setOpen] = useState(false);
+  
+  // Coupon & Billing State
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState("");
+  
+  // Billing Constants
+  const DELIVERY_FEE = cartTotal > 0 ? 40 : 0;
+  const PLATFORM_FEE = cartTotal > 0 ? 5 : 0;
+  const GST_RATE = 0.05;
+  const itemTotal = cartTotal;
+  const gstAmount = itemTotal * GST_RATE;
+  
+  let discountAmount = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.discount_type === "PERCENTAGE") {
+      discountAmount = itemTotal * (appliedCoupon.discount_value / 100);
+    } else {
+      discountAmount = appliedCoupon.discount_value;
+    }
+  }
+  
+  const grandTotal = Math.max(0, itemTotal + gstAmount + DELIVERY_FEE + PLATFORM_FEE - discountAmount).toFixed(2);
+  
+  const handleApplyCoupon = async () => {
+    setCouponError("");
+    if (!couponInput) return;
+    
+    // Check DB for coupon
+    const { data: coupon, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('coupon_code', couponInput.toUpperCase())
+      .single();
+      
+    if (error || !coupon) {
+      setCouponError("Invalid coupon code.");
+      return;
+    }
+    
+    // Check constraints
+    if (new Date(coupon.expiry_date) < new Date()) {
+      setCouponError("This coupon has expired.");
+      return;
+    }
+    
+    if (itemTotal < coupon.minimum_order_value) {
+      setCouponError(`Add items worth ₹${(coupon.minimum_order_value - itemTotal).toFixed(2)} more to use this coupon.`);
+      return;
+    }
+    
+    setAppliedCoupon(coupon);
+    setCouponInput("");
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError("");
+  };
   const handleClose = () => {
     setOpen(false);
   };
@@ -36,12 +95,12 @@ export default function Cart({
     }
   };
 
-  const totalPrice = cartTotal;
+
 
   const handlePayment = async () => {
     if (!user) {
       alert("Please login to place an order");
-      navigate("/login");
+      navigate("/");
       return;
     }
 
@@ -64,7 +123,7 @@ export default function Cart({
       const { data, error } = await supabase.rpc('place_order', {
         p_customer_id: user.id,
         p_restaurant_id: restaurantId,
-        p_total_amount: totalPrice,
+        p_total_amount: parseFloat(grandTotal),
         p_delivery_address: address,
         p_payment_method: paymentOption,
         p_items: orderItems
@@ -166,6 +225,52 @@ export default function Cart({
           )}
         </div>
       </div>
+      
+      {/* Coupon Processing */}
+      {cartItems.length > 0 && (
+        <div className="mb-8 rounded-xl bg-white border border-gray-100 shadow-sm p-6 overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+          <h2 className="mb-4 text-lg font-bold text-gray-900 flex items-center gap-2">
+            <i className="ri-ticket-2-line text-amber-500"></i> Offers & Benefits
+          </h2>
+          {appliedCoupon ? (
+            <div className="flex justify-between items-center bg-green-50 text-green-800 p-4 rounded-lg border border-green-200">
+              <div>
+                <strong className="block text-sm">'{appliedCoupon.coupon_code}' applied!</strong>
+                <span className="text-xs">You saved ₹{discountAmount.toFixed(2)}</span>
+              </div>
+              <button 
+                onClick={handleRemoveCoupon}
+                className="text-red-500 text-sm font-semibold hover:underline"
+              >
+                REMOVE
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  placeholder="Enter Coupon Code" 
+                  className="flex-grow rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold uppercase transition-colors"
+                />
+                <button 
+                  onClick={handleApplyCoupon}
+                  className="bg-gray-900 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors"
+                >
+                  APPLY
+                </button>
+              </div>
+              {couponError && (
+                <p className="text-red-500 text-xs mt-2 font-medium">{couponError}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mb-8 rounded-xl bg-gray-50 border border-gray-100 p-6">
         <h2 className="mb-4 text-xl font-bold text-gray-900 border-l-4 border-amber-500 pl-3">Order Summary</h2>
         <div className="space-y-3 text-sm text-gray-600">
@@ -188,10 +293,33 @@ export default function Cart({
             </div>
           )}
           
-          <div className="pt-4 mt-4 border-t border-gray-200">
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-bold text-gray-900">Total Amount</span>
-              <span className="font-bold text-gray-900">₹{totalPrice}</span>
+          <div className="pt-4 mt-2 border-t border-gray-200 border-dashed space-y-2">
+            <div className="flex justify-between items-center text-gray-600">
+              <span>Item Total</span>
+              <span>₹{itemTotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center text-gray-600">
+              <span>Delivery Fee</span>
+              <span>₹{DELIVERY_FEE.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center text-gray-600">
+              <span>Platform Fee</span>
+              <span>₹{PLATFORM_FEE.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center text-gray-600">
+              <span>GST & Restaurant Charges</span>
+              <span>₹{gstAmount.toFixed(2)}</span>
+            </div>
+            {appliedCoupon && (
+              <div className="flex justify-between items-center text-green-600 font-medium">
+                <span>Discount ({appliedCoupon.coupon_code})</span>
+                <span>-₹{discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            
+            <div className="pt-4 mt-4 border-t border-gray-200 flex justify-between items-center text-xl">
+              <span className="font-extrabold text-gray-900">Grand Total</span>
+              <span className="font-extrabold text-gray-900">₹{grandTotal}</span>
             </div>
           </div>
         </div>
@@ -205,7 +333,7 @@ export default function Cart({
         }`}
         disabled={!cartItems.length}
       >
-        Place Order • ₹{totalPrice}
+        Place Order • ₹{grandTotal}
       </button>
       <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}

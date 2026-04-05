@@ -33,7 +33,7 @@ function Admin() {
               <button
                 onClick={() => {
                   // Mock logout - just navigate to login
-                  navigate("/login");
+                  navigate("/");
                 }}
                 className="mx-2 mb-4 mt-auto rounded bg-red-500 px-4 py-3 text-center text-white duration-100 hover:-translate-y-1 hover:bg-red-600 hover:shadow-lg"
               >

@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../supabaseClient";
 
-function Register() {
+function Register({ onSuccess }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const navigate = useNavigate();
   const { signUp } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -31,8 +31,24 @@ function Register() {
       
       if (!authError) {
         setSuccess("Registration successful! You can now log in.");
-        console.log("User registered:", data.user);
-        setTimeout(() => navigate("/login"), 2000);
+        
+        // Auto-insert into customers table as a fallback if Postgres trigger failed or didn't run
+        if (data?.user) {
+          try {
+            await supabase.from('customers').insert([{
+              customer_id: data.user.id,
+              name: name,
+              email: email,
+              phone_number: mobileNumber
+            }]);
+          } catch (insertErr) {
+            console.error("Fallback insert failed (usually fine if trigger worked)", insertErr);
+          }
+        }
+        
+        setTimeout(() => {
+          if(onSuccess) onSuccess();
+        }, 2000);
       } else {
         setError(authError.message || "Registration failed. Please try again.");
       }
@@ -44,8 +60,6 @@ function Register() {
 
   return (
     <div>
-      <h1 className="mb-2 text-center text-3xl">Register</h1>
-
       <form
         onSubmit={handleSubmit}
         className="mx-auto w-full max-w-sm"
