@@ -25,7 +25,7 @@ function interpolate(start, end, t) {
   ];
 }
 
-export default function CurrentOrders({ orderId, orderTotal, onOrderComplete }) {
+export default function CurrentOrders({ orderId, orderTotal, onOrderComplete, dispatchedAt }) {
   const mapRef     = useRef(null);   // DOM node
   const leafletRef = useRef(null);   // L.map instance
   const bikeMarker = useRef(null);
@@ -33,7 +33,66 @@ export default function CurrentOrders({ orderId, orderTotal, onOrderComplete }) 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const completedRef = useRef(false);
 
-  /* ── init Leaflet map once ────────────────────────────── */
+  // Sync timer with global dispatch time
+  useEffect(() => {
+    if (!dispatchedAt) return;
+
+    const updateProgress = () => {
+      const start = new Date(dispatchedAt).getTime();
+      const now   = new Date().getTime();
+      const diff  = Math.floor((now - start) / 1000);
+      
+      const seconds = Math.max(0, diff);
+      setSecondsElapsed(seconds);
+
+      // Update step index
+      let stepIdx = 0;
+      for (let i = STEPS.length - 1; i >= 0; i--) {
+        if (seconds >= STEPS[i].time) { stepIdx = i; break; }
+      }
+      setCurrentStepIndex(stepIdx);
+
+      // Move bike marker
+      if (seconds >= 15 && seconds <= 30 && leafletRef.current) {
+        const t = (seconds - 15) / 15;
+        const pos = interpolate(RESTAURANT_POS, HOME_POS, t);
+
+        if (!bikeMarker.current) {
+          bikeMarker.current = L.marker(pos, {
+            icon: L.divIcon({
+              html: `<div style="background:#7c3aed;color:white;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 10px rgba(0,0,0,0.4);animation:pulse 1s infinite">🛵</div>`,
+              className: '', iconAnchor: [20, 20],
+            }),
+          }).addTo(leafletRef.current).bindPopup('<b>Ramesh</b><br/>On the way!');
+        } else {
+          bikeMarker.current.setLatLng(pos);
+        }
+        leafletRef.current.panTo(pos, { animate: true, duration: 0.8 });
+      }
+
+      // Handle delivery completion
+      if (seconds >= 30 && !completedRef.current) {
+        completedRef.current = true;
+        
+        // Update status in DB (only once)
+        if (orderId) {
+          supabase
+            .from('orders')
+            .update({ order_status: 'Delivered' })
+            .eq('order_id', orderId)
+            .then(({ error }) => {
+              if (!error) console.log('Order', orderId, 'marked as delivered');
+            });
+        }
+
+        if (onOrderComplete) onOrderComplete();
+      }
+    };
+
+    updateProgress();
+    const interval = setInterval(updateProgress, 1000);
+    return () => clearInterval(interval);
+  }, [dispatchedAt, orderId, onOrderComplete]);
   useEffect(() => {
     if (!mapRef.current || leafletRef.current) return;
 
@@ -72,68 +131,6 @@ export default function CurrentOrders({ orderId, orderTotal, onOrderComplete }) 
       leafletRef.current = null;
     };
   }, []);
-
-  /* ── 30-second delivery timer ─────────────────────────── */
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsElapsed(prev => {
-        const next = prev + 1;
-
-        // Update step
-        let stepIdx = 0;
-        for (let i = STEPS.length - 1; i >= 0; i--) {
-          if (next >= STEPS[i].time) { stepIdx = i; break; }
-        }
-        setCurrentStepIndex(stepIdx);
-
-        // Move bike marker once partner picks up (t=15)
-        if (next >= 15 && next <= 30 && leafletRef.current) {
-          const t = (next - 15) / 15;
-          const pos = interpolate(RESTAURANT_POS, HOME_POS, t);
-
-          if (!bikeMarker.current) {
-            bikeMarker.current = L.marker(pos, {
-              icon: L.divIcon({
-                html: `<div style="background:#7c3aed;color:white;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 10px rgba(0,0,0,0.4);animation:pulse 1s infinite">🛵</div>`,
-                className: '', iconAnchor: [20, 20],
-              }),
-            }).addTo(leafletRef.current).bindPopup('<b>Ramesh</b><br/>On the way!');
-          } else {
-            bikeMarker.current.setLatLng(pos);
-          }
-
-          // Pan map to follow bike
-          leafletRef.current.panTo(pos, { animate: true, duration: 0.8 });
-        }
-
-        // Delivered
-        if (next >= 30 && !completedRef.current) {
-          completedRef.current = true;
-          clearInterval(timer);
-
-          // Update status in DB
-          if (orderId) {
-            supabase
-              .from('orders')
-              .update({ order_status: 'Delivered' })
-              .eq('order_id', orderId)
-              .then(({ error }) => {
-                if (error) console.warn('Could not update order status:', error.message);
-                else console.log('Order', orderId, 'marked as delivered');
-              });
-          }
-
-          setTimeout(() => {
-            if (onOrderComplete) onOrderComplete();
-          }, 2000);
-        }
-
-        return next;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [orderId, onOrderComplete]);
 
   const progress = Math.min((secondsElapsed / 30) * 100, 100);
   const currentStep = STEPS[currentStepIndex];

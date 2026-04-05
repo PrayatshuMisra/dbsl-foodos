@@ -203,11 +203,67 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
-  // Real order from navigation state (passed from Cart after checkout)
-  const incomingOrder = location.state?.activeOrder || null;
-  const [activeOrder, setActiveOrder] = useState(incomingOrder);
-
   const { user, signOut } = useAuth();
+  const [activeOrder, setActiveOrder] = useState(null);
+  const [activeOrderStatus, setActiveOrderStatus] = useState("Pending");
+
+  // ⚡ STABLE PERSISTENT TRACKING: Fetch actual active order from DB on mount
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchActiveOrder = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('order_id, order_status, total_amount, dispatched_at')
+          .eq('customer_id', user.id)
+          .in('order_status', ['Pending', 'Confirmed', 'Preparing', 'Dispatched'])
+          .order('order_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setActiveOrder({ id: data.order_id, total: data.total_amount, dispatchedAt: data.dispatched_at });
+          setActiveOrderStatus(data.order_status);
+          
+          // Switch to tracker tab only if specifically opening profile from cart or if an order exists
+          if (urlTab === "currentOrders" || !urlTab) {
+             setActiveTab("currentOrders");
+          }
+        }
+      } catch (err) {
+        console.error('Active order recovery error:', err);
+      }
+    };
+
+    fetchActiveOrder();
+  }, [user, urlTab]);
+
+  useEffect(() => {
+    if (activeOrder?.id) {
+      // Realtime listener for status changes
+      const channel = supabase
+        .channel(`active-order-${activeOrder.id}`)
+        .on(
+          'postgres_changes', 
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `order_id=eq.${activeOrder.id}` }, 
+          (payload) => {
+            console.log('Order update received:', payload.new.order_status);
+            setActiveOrderStatus(payload.new.order_status);
+            
+            // If dispatched, update the local object too so the map has the timestamp
+            if (payload.new.dispatched_at) {
+              setActiveOrder(prev => ({ ...prev, dispatchedAt: payload.new.dispatched_at }));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [activeOrder]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -335,11 +391,26 @@ export default function Profile() {
             
             {activeTab === "currentOrders" && (
               activeOrder ? (
-                <CurrentOrders
-                  orderId={activeOrder.id}
-                  orderTotal={activeOrder.total}
-                  onOrderComplete={handleLiveOrderComplete}
-                />
+                activeOrderStatus === "Dispatched" ? (
+                  <CurrentOrders
+                    orderId={activeOrder.id}
+                    orderTotal={activeOrder.total}
+                    onOrderComplete={handleLiveOrderComplete}
+                    dispatchedAt={activeOrder.dispatchedAt}
+                  />
+                ) : (
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center h-full flex flex-col items-center justify-center">
+                    <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mb-6 relative">
+                       <i className="ri-restaurant-line text-4xl animate-pulse"></i>
+                       <div className="absolute inset-0 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
+                    <p className="text-gray-500 max-w-sm">The restaurant is currently preparing your delicious meal. We'll start live tracking as soon as it's dispatched!</p>
+                    <div className="mt-8 px-6 py-2 bg-amber-100 text-amber-700 rounded-full text-xs font-black uppercase tracking-widest">
+                       Status: {activeOrderStatus}
+                    </div>
+                  </div>
+                )
               ) : (
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center h-full flex flex-col items-center justify-center">
                   <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 text-3xl mb-4">

@@ -29,13 +29,11 @@ export default function Navbar() {
     ? [
         { name: 'Dashboard', path: '/owner/dashboard' },
         { name: 'Restaurants', path: '/restos' },
-        { name: 'About', path: '/about' },
       ]
     : [
         { name: 'Home', path: '/home' },
         { name: 'Restaurants', path: '/restos' },
         { name: 'Offers', path: '/offers' },
-        { name: 'About', path: '/about' },
       ];
 
   const isActive = (path) => location.pathname === path;

@@ -1,0 +1,304 @@
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import OwnerNav from '../components/OwnerNav';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  BarChart, Bar, Cell, PieChart, Pie, AreaChart, Area, Legend
+} from 'recharts';
+import { 
+  FiTrendingUp, 
+  FiUsers, 
+  FiShoppingBag, 
+  FiCalendar,
+  FiDownload,
+  FiArrowUpRight,
+  FiArrowDownRight
+} from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import CircularProgress from '@mui/material/CircularProgress';
+
+export default function OwnerAnalytics() {
+  const { user, loading: authLoading } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState('7d');
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (user?.restaurantId) {
+      fetchAnalyticsData();
+    } else {
+      setLoading(false);
+    }
+  }, [user, authLoading, timeRange]);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          order_id,
+          order_date,
+          total_amount,
+          customer_id,
+          order_details (
+            quantity,
+            menu_items (item_name, category_id, menu_categories (category_name))
+          )
+        `)
+        .eq('restaurant_id', user.restaurantId)
+        .order('order_date', { ascending: true });
+
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const revenueData = useMemo(() => {
+    const daily = {};
+    orders.forEach(order => {
+      const date = new Date(order.order_date).toLocaleDateString('en-US', { weekday: 'short' });
+      daily[date] = (daily[date] || 0) + Number(order.total_amount);
+    });
+    return Object.entries(daily).map(([name, value]) => ({ name, value }));
+  }, [orders]);
+
+  const dishData = useMemo(() => {
+    const counter = {};
+    orders.forEach(order => {
+      order.order_details?.forEach(detail => {
+        const name = detail.menu_items?.item_name || 'Unknown';
+        counter[name] = (counter[name] || 0) + detail.quantity;
+      });
+    });
+    return Object.entries(counter)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [orders]);
+
+  const peakHoursData = useMemo(() => {
+    const hours = Array(24).fill(0);
+    orders.forEach(order => {
+      const hour = new Date(order.order_date).getHours();
+      hours[hour]++;
+    });
+    
+    // Transform to readable format (12 AM, 1 AM, etc.)
+    return hours.map((count, hr) => ({
+      name: hr === 0 ? '12 AM' : hr === 12 ? '12 PM' : hr > 12 ? `${hr - 12} PM` : `${hr} AM`,
+      value: count,
+      fullHour: hr
+    })).filter(h => h.fullHour >= 8 && h.fullHour <= 23); // Only show operating hours 8 AM - 11 PM
+  }, [orders]);
+
+  const uniqueCustomers = useMemo(() => {
+    const ids = new Set(orders.map(o => o.customer_id));
+    return ids.size;
+  }, [orders]);
+
+  const COLORS = ['#F59E0B', '#F43F5E', '#10B981', '#3B82F6', '#8B5CF6'];
+
+  const stats = [
+    { name: 'Total Revenue', value: `₹${orders.reduce((acc, o) => acc + Number(o.total_amount), 0).toLocaleString()}`, icon: 'ri-money-rupee-circle-line', change: '+12.5%', color: 'text-amber-500', bg: 'bg-amber-50' },
+    { name: 'Total Orders', value: orders.length, icon: 'ri-shopping-bag-line', change: '+8.2%', color: 'text-amber-500', bg: 'bg-amber-50' },
+    { name: 'Avg. Order', value: `₹${orders.length ? Math.round(orders.reduce((acc, o) => acc + Number(o.total_amount), 0) / orders.length) : 0}`, icon: 'ri-funds-line', change: '-2.1%', color: 'text-amber-500', bg: 'bg-amber-50' },
+    { name: 'Unique Customers', value: uniqueCustomers, icon: 'ri-user-heart-line', change: '+15.4%', color: 'text-amber-500', bg: 'bg-amber-50' },
+  ];
+
+  if (authLoading) return null;
+
+  if (!authLoading && user && user.isOwner === false && !loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center p-6 mt-20">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center max-w-md">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6">
+              <FiXCircle />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-500">You don't have permission to view business analytics. This area is reserved for restaurant partners.</p>
+            <button 
+              onClick={() => window.location.href = '/home'}
+              className="mt-8 bg-gray-900 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition-all"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar />
+      <div className="mx-auto flex gap-6 pt-24 pb-12 w-[90%] max-w-7xl flex-grow font-outfit">
+        <OwnerNav />
+        <div className="w-[75%] space-y-8">
+          {/* Header */}
+          <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 leading-tight">Business Intelligence</h1>
+              <p className="text-gray-500 mt-1 font-medium tracking-tight">Advanced sales analytics and growth insights</p>
+            </div>
+            <div className="flex items-center gap-3">
+               <select 
+                 value={timeRange} 
+                 onChange={(e) => setTimeRange(e.target.value)}
+                 className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 font-bold text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+               >
+                  <option value="24h">Last 24 Hours</option>
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d">Last 30 Days</option>
+               </select>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {(loading ? [1,2,3,4] : stats).map((stat, i) => (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                key={loading ? i : stat.name} 
+                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 overflow-hidden relative"
+              >
+                {loading ? (
+                  <div className="w-full flex items-center gap-4">
+                     <div className="w-12 h-12 bg-gray-100 rounded-lg animate-pulse"></div>
+                     <div className="space-y-2 flex-grow">
+                        <div className="h-2 w-12 bg-gray-100 rounded animate-pulse"></div>
+                        <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
+                     </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-lg flex items-center justify-center text-2xl`}>
+                      <i className={stat.icon}></i>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{stat.name}</p>
+                      <h3 className="text-lg font-bold text-gray-900">{stat.value}</h3>
+                      <span className="text-[10px] font-bold text-green-500">{stat.change}</span>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Charts Row 1 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm min-h-[350px] relative overflow-hidden">
+               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Revenue Stream</h3>
+               <div className="h-64 w-full">
+                  {loading ? (
+                    <div className="w-full h-full bg-gray-50 animate-pulse rounded-lg flex flex-col justify-end p-4 gap-2">
+                       <div className="h-[60%] w-full bg-gray-100 rounded"></div>
+                       <div className="h-4 w-full flex gap-4">
+                          {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-full flex-grow bg-gray-100 rounded"></div>)}
+                       </div>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                       <AreaChart data={revenueData}>
+                          <defs>
+                             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.1}/>
+                                <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                             </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 'bold'}} />
+                          <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 'bold'}} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                          <Area type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                       </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+               </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm min-h-[350px] relative overflow-hidden">
+               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Popular Dishes</h3>
+               <div className="h-64 w-full">
+                  {loading ? (
+                    <div className="space-y-4 pt-4">
+                       {[1,2,3,4,5].map(i => (
+                         <div key={i} className="flex items-center gap-4">
+                            <div className="h-2 w-16 bg-gray-100 rounded"></div>
+                            <div className="h-4 flex-grow bg-gray-100 rounded mr-12" style={{width: `${100 - i*15}%`}}></div>
+                         </div>
+                       ))}
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                       <BarChart data={dishData} layout="vertical" margin={{ left: 20 }}>
+                          <XAxis type="number" hide />
+                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#1F2937', fontSize: 10, fontWeight: 'bold'}} width={80} />
+                          <Tooltip />
+                          <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={20}>
+                             {dishData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                          </Bar>
+                       </BarChart>
+                    </ResponsiveContainer>
+                  )}
+               </div>
+            </div>
+          </div>
+
+          {/* Charts Row 2 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
+            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col min-h-[350px]">
+               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Peak Order Hours</h3>
+               <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                     <BarChart data={peakHoursData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 9, fontWeight: 'bold'}} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 'bold'}} />
+                        <Tooltip 
+                           cursor={{fill: '#F8FAFC'}}
+                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} 
+                        />
+                        <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} barSize={25}>
+                           {peakHoursData.map((entry, index) => (
+                             <Cell key={`cell-${index}`} fill={entry.value > 2 ? '#8B5CF6' : '#C4B5FD'} />
+                           ))}
+                        </Bar>
+                     </BarChart>
+                  </ResponsiveContainer>
+               </div>
+            </div>
+
+            <div className="bg-amber-500 text-white p-8 rounded-xl shadow-lg relative overflow-hidden flex flex-col justify-between">
+               <div className="relative z-10 space-y-4">
+                  <h3 className="text-2xl font-bold uppercase tracking-tighter">Performance Insight</h3>
+                  <p className="text-sm font-medium leading-relaxed opacity-90">
+                    "Peak ordering occurs between 7 PM and 9 PM. Your currently busiest dish is '{dishData[0]?.name || 'N/A'}'. Consider offering limited-time 'Flash Deals' during off-peak hours to maintain consistency."
+                  </p>
+               </div>
+               <button className="relative z-10 w-fit mt-8 px-6 py-2.5 bg-white text-amber-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm">
+                  Export PDF Report
+               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
+}

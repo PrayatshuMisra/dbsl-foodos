@@ -17,6 +17,12 @@ export const AuthProvider = ({ children }) => {
   const lastUserId = useRef(null);
 
   const enrichUser = useCallback(async (authUser, force = false) => {
+    if (!authUser) return;
+    
+    // 🟣 Cache key for this specific user
+    const cacheKey = `foodos_role_${authUser.id}`;
+
+    // 🔥 Fix: Check Ref only, don't depend on 'user' state to avoid loop
     if (!force && lastUserId.current === authUser.id) return;
     lastUserId.current = authUser.id;
 
@@ -27,78 +33,75 @@ export const AuthProvider = ({ children }) => {
           .select('restaurant_id')
           .eq('owner_id', authUser.id)
           .maybeSingle(),
-        3000 // 3 second max for this query
+        10000 
       );
 
       if (data) {
-        setUser({ ...authUser, isOwner: true, restaurantId: data.restaurant_id });
+        const ownerInfo = { isOwner: true, restaurantId: data.restaurant_id };
+        setUser({ ...authUser, ...ownerInfo });
+        localStorage.setItem(cacheKey, JSON.stringify(ownerInfo));
         return;
       }
     } catch (err) {
-      // Timed out or failed — just treat as non-owner
-      console.warn('Owner check skipped:', err.message);
+      console.log('Restaurant membership check: timeout or failure');
     }
 
-    // Default: set as normal customer
-    setUser({ ...authUser, isOwner: false });
-
-    // Background: ensure customer row exists (don't await, don't block)
-    supabase
-      .from('customers')
-      .select('customer_id')
-      .eq('customer_id', authUser.id)
-      .maybeSingle()
-      .then(({ data: custData }) => {
-        if (!custData) {
-          supabase.from('customers').insert([{
-            customer_id: authUser.id,
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0],
-            email: authUser.email,
-            phone_number: authUser.user_metadata?.phone_number || 'N/A'
-          }]).then(() => {});
-        }
-      })
-      .catch(() => {});
-  }, []);
+    // ⚡ Verification truly complete and no owner found
+    const customerInfo = { isOwner: false, restaurantId: null };
+    setUser({ ...authUser, ...customerInfo });
+    localStorage.setItem(cacheKey, JSON.stringify(customerInfo));
+  }, []); // ⚡ Stable callback
 
   useEffect(() => {
     let mounted = true;
 
     const initSession = async () => {
       try {
-        const { data: { session } } = await withTimeout(
-          supabase.auth.getSession(),
-          8000 // 8 seconds — free-tier Supabase can be slow on cold start
-        );
+        const { data: { session }, error } = await supabase.auth.getSession();
 
         if (!mounted) return;
 
-        if (session?.user) {
-          await enrichUser(session.user, true);
+        if (!session?.user) {
+          // No session: we must stop loading now so the login or home page can show.
+          if (mounted) setLoading(false);
         }
       } catch (e) {
-        // getSession timed out or failed — just show login page
-        console.warn('Session init:', e.message);
-      } finally {
-        // ALWAYS stop loading no matter what happened above
+        console.log('Session fetch skipped or failed: ', e.message);
         if (mounted) setLoading(false);
       }
     };
 
     initSession();
 
-    // Listen for login/logout only
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN' && session?.user) {
-        await enrichUser(session.user, true);
-        if (mounted) setLoading(false);
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        // ⚡ INSTANT LOAD: check cache first for sub-millisecond transition
+        const cacheKey = `foodos_role_${session.user.id}`;
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+          const { isOwner, restaurantId } = JSON.parse(cached);
+          setUser({ ...session.user, isOwner, restaurantId });
+          if (mounted) setLoading(false); // 🔥 FAST PATH EXIT
+        }
+
+        // BACKGROUND REFRESH: ensure role is still correct (no lock contention issues)
+        enrichUser(session.user, false).then(() => {
+          if (mounted) setLoading(false); // 🔥 SLOW PATH EXIT (fallback/first-time)
+        });
+
       } else if (event === 'SIGNED_OUT') {
+        const oldUserId = lastUserId.current;
+        if (oldUserId) localStorage.removeItem(`foodos_role_${oldUserId}`);
+        
         lastUserId.current = null;
         setUser(null);
+        if (mounted) setLoading(false);
+      } else {
+        if (mounted && event !== 'TOKEN_REFRESHED') setLoading(false);
       }
-      // TOKEN_REFRESHED → ignore completely
     });
 
     return () => {
@@ -111,6 +114,8 @@ export const AuthProvider = ({ children }) => {
     signUp: (data) => supabase.auth.signUp(data),
     signIn: (data) => supabase.auth.signInWithPassword(data),
     signOut: async () => {
+      const oldUserId = user?.id;
+      if (oldUserId) localStorage.removeItem(`foodos_role_${oldUserId}`);
       lastUserId.current = null;
       return supabase.auth.signOut();
     },
