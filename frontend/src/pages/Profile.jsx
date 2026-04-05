@@ -23,24 +23,25 @@ function Sidebar({ activeTab, handleTabChange, handleLogout, name, image }) {
       </div>
 
       <div className="flex flex-col gap-3">
-        {["profile", "currentOrders", "orderHistory"].map((tab) => (
+        {[
+          { id: "profile", label: "Profile Info", icon: "ri-user-line" },
+          { id: "addresses", label: "Manage Addresses", icon: "ri-map-pin-line" },
+          { id: "favorites", label: "Favorites", icon: "ri-heart-line" },
+          { id: "currentOrders", label: "Live Tracking", icon: "ri-truck-line" },
+          { id: "orderHistory", label: "Order History", icon: "ri-history-line" },
+        ].map((tab) => (
           <button
-            key={tab}
+            key={tab.id}
             className={`rounded-lg px-4 py-3 text-left font-medium transition-colors ${
-              activeTab === tab
+              activeTab === tab.id
                 ? "bg-amber-50 text-amber-600 border border-amber-200"
                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             }`}
-            onClick={() => handleTabChange(tab)}
+            onClick={() => handleTabChange(tab.id)}
           >
             <div className="flex items-center gap-3">
-              {tab === "profile" && <i className="ri-user-line text-lg"></i>}
-              {tab === "currentOrders" && <i className="ri-truck-line text-lg"></i>}
-              {tab === "orderHistory" && <i className="ri-history-line text-lg"></i>}
-              
-              {tab === "profile" && "Profile Info"}
-              {tab === "currentOrders" && "Live Tracking"}
-              {tab === "orderHistory" && "Order History"}
+              <i className={`${tab.icon} text-lg`}></i>
+              {tab.label}
             </div>
           </button>
         ))}
@@ -168,19 +169,148 @@ function ProfileForm({ name, setName, mobileNumber, setMobileNumber, address, se
   );
 }
 
-function OrderHistory({ orderData, isLoadingOrders }) {
+function AddressManager({ user }) {
+  const [addresses, setAddresses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newAddr, setNewAddr] = useState({ label: 'Home', text: '' });
+
+  const fetchAddresses = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('customer_addresses').select('*').eq('customer_id', user.id);
+    setAddresses(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAddresses(); }, [user]);
+
+  const addAddress = async () => {
+    if (!newAddr.text) return;
+    await supabase.from('customer_addresses').insert([{ 
+      customer_id: user.id, 
+      address_label: newAddr.label, 
+      address_text: newAddr.text,
+      is_default: addresses.length === 0
+    }]);
+    setNewAddr({ label: 'Home', text: '' });
+    setIsAdding(false);
+    fetchAddresses();
+  };
+
+  const deleteAddress = async (id) => {
+    await supabase.from('customer_addresses').delete().eq('address_id', id);
+    fetchAddresses();
+  };
+
   return (
-    <div className="h-full overflow-auto rounded-xl bg-white p-8 border border-gray-100 shadow-sm">
-      <h2 className="mb-6 border-b border-gray-100 pb-4 text-2xl font-bold text-gray-900">Order History</h2>
-      {isLoadingOrders ? (
-        <div className="mt-8 flex items-center justify-center">
-          <CircularProgress color="warning" size={50} />
-        </div>
-      ) : orderData.length ? (
-        <OrderList orderData={orderData} />
-      ) : (
-        <h1 className="ml-4">No orders made yet</h1>
-      )}
+    <div className="h-full rounded-xl bg-white p-8 border border-gray-100 shadow-sm overflow-y-auto">
+       <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+          <h2 className="text-2xl font-bold text-gray-900">Saved Addresses</h2>
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="text-xs font-black uppercase tracking-widest text-amber-600 hover:text-amber-700 underline"
+          >
+            + Add New
+          </button>
+       </div>
+
+       {isAdding && (
+         <div className="bg-amber-50 p-6 rounded-xl border border-amber-100 mb-6 space-y-4">
+            <div>
+               <label className="block text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1.5">Label (e.g. Home, Work)</label>
+               <input 
+                type="text" value={newAddr.label} onChange={e => setNewAddr({...newAddr, label: e.target.value})}
+                className="w-full bg-white border border-amber-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500"
+               />
+            </div>
+            <div>
+               <label className="block text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1.5">Full Address</label>
+               <textarea 
+                value={newAddr.text} onChange={e => setNewAddr({...newAddr, text: e.target.value})}
+                className="w-full bg-white border border-amber-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-500 min-h-[80px]"
+               />
+            </div>
+            <div className="flex gap-3">
+               <button onClick={addAddress} className="flex-grow bg-amber-500 text-white rounded-lg py-2.5 font-bold text-xs uppercase tracking-widest shadow-sm">Save Address</button>
+               <button onClick={() => setIsAdding(false)} className="px-6 text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600">Cancel</button>
+            </div>
+         </div>
+       )}
+
+       <div className="space-y-4">
+          {loading ? [1,2].map(i => <div key={i} className="h-24 bg-gray-50 rounded-xl animate-pulse"></div>) : 
+           addresses.length === 0 ? <p className="text-gray-400 italic text-center py-10">No saved addresses yet.</p> :
+           addresses.map(addr => (
+             <div key={addr.address_id} className="p-5 border border-gray-100 rounded-xl flex justify-between items-start group hover:border-amber-200 transition-all">
+                <div className="flex gap-4">
+                   <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                      <i className="ri-map-pin-2-line text-xl"></i>
+                   </div>
+                   <div>
+                      <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                        {addr.address_label}
+                        {addr.is_default && <span className="text-[8px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase">Default</span>}
+                      </h4>
+                      <p className="text-xs text-gray-500 font-medium leading-relaxed max-w-md mt-1">{addr.address_text}</p>
+                   </div>
+                </div>
+                <button onClick={() => deleteAddress(addr.address_id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                   <i className="ri-delete-bin-line"></i>
+                </button>
+             </div>
+           ))
+          }
+       </div>
+    </div>
+  );
+}
+
+function FavoritesList({ user }) {
+  const navigate = useNavigate();
+  const [favs, setFavs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchFavs = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('favorites')
+      .select('*, restaurants(*)')
+      .eq('customer_id', user.id);
+    setFavs(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchFavs(); }, [user]);
+
+  const removeFav = async (id) => {
+    await supabase.from('favorites').delete().eq('favorite_id', id);
+    fetchFavs();
+  };
+
+  return (
+    <div className="h-full rounded-xl bg-white p-8 border border-gray-100 shadow-sm overflow-y-auto">
+       <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">My Favorites</h2>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {loading ? [1,2,3,4].map(i => <div key={i} className="h-32 bg-gray-50 rounded-xl animate-pulse"></div>) :
+           favs.length === 0 ? <p className="text-gray-400 italic text-center py-10 col-span-full">No favorites yet.</p> :
+           favs.map(fav => (
+             <div key={fav.favorite_id} className="group relative bg-gray-50 rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition-all">
+                <img src={fav.restaurants?.image_url} className="w-full h-32 object-cover opacity-80 group-hover:opacity-100" />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent flex flex-col justify-end p-4">
+                   <h4 className="text-white font-bold text-lg leading-tight">{fav.restaurants?.restaurant_name}</h4>
+                   <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">{fav.restaurants?.cuisine_type}</p>
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); removeFav(fav.favorite_id); }}
+                  className="absolute top-3 right-3 w-8 h-8 bg-black/20 backdrop-blur rounded-full text-white hover:bg-white hover:text-red-500 flex items-center justify-center transition-all"
+                >
+                   <i className="ri-heart-fill"></i>
+                </button>
+                <div className="absolute inset-0 cursor-pointer" onClick={() => navigate('/restaurant', { state: { id: fav.restaurant_id } })}></div>
+             </div>
+           ))
+          }
+       </div>
     </div>
   );
 }
@@ -388,6 +518,14 @@ export default function Profile() {
                 setIsEditing={setIsEditing}
               />
             )}
+
+            {activeTab === "addresses" && (
+              <AddressManager user={user} />
+            )}
+
+            {activeTab === "favorites" && (
+              <FavoritesList user={user} />
+            )}
             
             {activeTab === "currentOrders" && (
               activeOrder ? (
@@ -423,7 +561,7 @@ export default function Profile() {
             )}
             
             {activeTab === "orderHistory" && (
-              <OrderHistory orderData={orderData} isLoadingOrders={isLoadingOrders} />
+              <OrderList orderData={orderData} isLoadingOrders={isLoadingOrders} />
             )}
           </ErrorBoundary>
         </div>

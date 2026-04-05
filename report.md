@@ -127,13 +127,13 @@ The main objectives of this project are:
 The scope of the proposed system includes:
 
 \begin{itemize}
-    \item Customer registration and management
+    \item Customer registration, address management, and favorites tracking
     \item Restaurant and restaurant owner management
     \item Menu and category management
-    \item Order placement and order details tracking
-    \item Payment and coupon management
-    \item Delivery partner assignment and delivery tracking
-    \item Customer review and rating management
+    \item Order placement, specific instructions, and preparation time tracking
+    \item Payment and restaurant-specific coupon management
+    \item Delivery partner assignment and real-time delivery tracking
+    \item Item-level customer review and rating management
 \end{itemize}
 
 \subsection{Limitations}
@@ -232,6 +232,8 @@ The major entities used in the proposed system are:
 
 \begin{itemize}
     \item \textbf{Customers}
+    \item \textbf{Customer\_Addresses}
+    \item \textbf{Favorites}
     \item \textbf{Restaurants}
     \item \textbf{Restaurant\_Owners}
     \item \textbf{Menu\_Categories}
@@ -275,17 +277,19 @@ The relational schema of the proposed database is presented in Table~\ref{tab:sc
 \textbf{Table} & \textbf{Attributes} \\
 \midrule
 Customers & Customer\_ID (PK), Name, Email, Phone\_Number, Address, Registration\_Date \\
+Customer\_Addresses & Address\_ID (PK), Customer\_ID (FK), Address\_Label, Address\_Text, Is\_Default, Created\_At \\
+Favorites & Favorite\_ID (PK), Customer\_ID (FK), Restaurant\_ID (FK), Item\_ID (FK), Created\_At \\
 Restaurants & Restaurant\_ID (PK), Restaurant\_Name, Location, Contact\_Number, Cuisine\_Type, Opening\_Time, Closing\_Time, Rating \\
 Restaurant\_Owners & Owner\_ID (PK), Owner\_Name, Email, Phone\_Number, Restaurant\_ID (FK) \\
 Menu\_Categories & Category\_ID (PK), Restaurant\_ID (FK), Category\_Name \\
 Menu\_Items & Item\_ID (PK), Restaurant\_ID (FK), Category\_ID (FK), Item\_Name, Description, Price, Availability\_Status \\
-Orders & Order\_ID (PK), Customer\_ID (FK), Restaurant\_ID (FK), Order\_Date, Total\_Amount, Order\_Status, Delivery\_Address \\
-Order\_Details & Order\_Detail\_ID (PK), Order\_ID (FK), Item\_ID (FK), Quantity, Subtotal \\
+Orders & Order\_ID (PK), Customer\_ID (FK), Restaurant\_ID (FK), Order\_Date, Total\_Amount, Order\_Status, Delivery\_Address, Estimated\_Prep\_Time, Dispatched\_At \\
+Order\_Details & Order\_Detail\_ID (PK), Order\_ID (FK), Item\_ID (FK), Quantity, Subtotal, Special\_Instructions \\
 Payments & Payment\_ID (PK), Order\_ID (FK), Payment\_Method, Payment\_Status, Amount\_Paid, Payment\_Date \\
 Delivery\_Partners & Partner\_ID (PK), Name, Phone\_Number, Vehicle\_Type, Availability\_Status \\
 Deliveries & Delivery\_ID (PK), Order\_ID (FK), Partner\_ID (FK), Pickup\_Time, Delivery\_Time, Delivery\_Status \\
-Reviews & Review\_ID (PK), Customer\_ID (FK), Restaurant\_ID (FK), Rating, Comment, Review\_Date \\
-Coupons & Coupon\_ID (PK), Coupon\_Code, Discount\_Type, Discount\_Value, Expiry\_Date, Minimum\_Order\_Value \\
+Reviews & Review\_ID (PK), Customer\_ID (FK), Restaurant\_ID (FK), Item\_ID (FK), Rating, Comment, Review\_Date \\
+Coupons & Coupon\_ID (PK), Restaurant\_ID (FK), Coupon\_Code, Discount\_Type, Discount\_Value, Expiry\_Date, Minimum\_Order\_Value \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -356,6 +360,8 @@ CREATE TABLE Orders (
     Total_Amount NUMBER(10,2),
     Order_Status VARCHAR2(30),
     Delivery_Address VARCHAR2(255),
+    Estimated_Prep_Time NUMBER DEFAULT 30,
+    Dispatched_At DATE,
     FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID),
     FOREIGN KEY (Restaurant_ID) REFERENCES Restaurants(Restaurant_ID)
 );
@@ -368,6 +374,7 @@ CREATE TABLE Order_Details (
     Item_ID NUMBER,
     Quantity NUMBER,
     Subtotal NUMBER(10,2),
+    Special_Instructions VARCHAR2(255),
     FOREIGN KEY (Order_ID) REFERENCES Orders(Order_ID),
     FOREIGN KEY (Item_ID) REFERENCES Menu_Items(Item_ID)
 );
@@ -505,12 +512,14 @@ CREATE OR REPLACE PROCEDURE Place_Order(
     p_Order_Date IN DATE,
     p_Total_Amount IN NUMBER,
     p_Order_Status IN VARCHAR2,
-    p_Delivery_Address IN VARCHAR2
+    p_Delivery_Address IN VARCHAR2,
+    p_Estimated_Prep_Time IN NUMBER,
+    p_Dispatched_At IN DATE
 )
 AS
 BEGIN
-    INSERT INTO Orders(Order_ID, Customer_ID, Restaurant_ID, Order_Date, Total_Amount, Order_Status, Delivery_Address)
-    VALUES(p_Order_ID, p_Customer_ID, p_Restaurant_ID, p_Order_Date, p_Total_Amount, p_Order_Status, p_Delivery_Address);
+    INSERT INTO Orders(Order_ID, Customer_ID, Restaurant_ID, Order_Date, Total_Amount, Order_Status, Delivery_Address, Estimated_Prep_Time, Dispatched_At)
+    VALUES(p_Order_ID, p_Customer_ID, p_Restaurant_ID, p_Order_Date, p_Total_Amount, p_Order_Status, p_Delivery_Address, p_Estimated_Prep_Time, p_Dispatched_At);
 END;
 /
 \end{lstlisting}

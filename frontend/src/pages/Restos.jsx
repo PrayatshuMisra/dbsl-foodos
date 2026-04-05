@@ -177,10 +177,19 @@ export default function Restos() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {[1,2,3,4,5,6,7,8].map(i => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-gray-200 rounded-2xl aspect-[4/3] mb-4"></div>
-                <div className="h-6 bg-gray-200 rounded-full w-3/4 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded-full w-1/2"></div>
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="bg-gray-200 aspect-[4/3] w-full animate-pulse"></div>
+                <div className="p-5 space-y-3">
+                  <div className="h-6 bg-gray-100 rounded-full w-3/4 animate-pulse"></div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-50 rounded-full w-1/4 animate-pulse"></div>
+                    <div className="h-4 bg-gray-50 rounded-full w-1/4 animate-pulse"></div>
+                  </div>
+                  <div className="pt-3 border-t border-gray-50 flex gap-2">
+                    <div className="h-4 bg-gray-50 rounded-full w-1/3 animate-pulse"></div>
+                    <div className="h-4 bg-gray-50 rounded-full w-1/4 animate-pulse"></div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -191,23 +200,25 @@ export default function Restos() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-              <Search size={40} className="text-gray-300" />
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-32 h-32 bg-amber-50 rounded-full flex items-center justify-center mb-8 relative">
+              <Search size={48} className="text-amber-500/30" />
+              <div className="absolute inset-0 border-2 border-dashed border-amber-200 rounded-full animate-[spin_10s_linear_infinite]"></div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No restaurants found</h3>
-            <p className="text-gray-500 max-w-xs">
-              We couldn't find any results matching your filters. Try adjusting them.
+            <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">No matching restaurants</h3>
+            <p className="text-gray-500 max-w-sm mb-10 font-medium">
+              We couldn't find anything matching your current filters. Try broadening your search or clearing the selection.
             </p>
             <button 
               onClick={() => {
                 setActiveCuisine("All");
                 setMinRating(0);
                 setPriceRange("All");
+                setSearchParams({});
               }}
-              className="mt-6 px-6 py-2 bg-amber-500 text-white font-bold rounded-full hover:bg-amber-600 transition-colors"
+              className="px-10 py-4 bg-gray-900 text-white font-black text-xs uppercase tracking-widest rounded-full hover:bg-amber-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
             >
-              Clear all filters
+              Reset all filters
             </button>
           </div>
         )}

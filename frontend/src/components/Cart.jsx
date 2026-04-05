@@ -21,6 +21,9 @@ export default function Cart({
   const [paymentSuccessfulAlert, setPaymentSuccessfulAlert] = useState(false);
   const [open, setOpen] = useState(false);
   
+  // Special Instructions State
+  const [itemInstructions, setItemInstructions] = useState({});
+  
   // Coupon & Billing State
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -94,7 +97,15 @@ export default function Cart({
     let userConfirm = window.confirm(`Removing ${name}!`);
     if (userConfirm) {
       removeFromCart(id);
+      // Clean up instructions
+      const newInst = { ...itemInstructions };
+      delete newInst[id];
+      setItemInstructions(newInst);
     }
+  };
+
+  const updateInstruction = (id, val) => {
+    setItemInstructions(prev => ({ ...prev, [id]: val }));
   };
 
   const handlePayment = async () => {
@@ -116,7 +127,8 @@ export default function Cart({
       const orderItems = cartItems.map((item) => ({
         item_id: item.id,
         quantity: item.quantity,
-        subtotal: item.quantity * item.price
+        subtotal: item.quantity * item.price,
+        instructions: itemInstructions[item.id] || ""
       }));
 
       // Call Supabase RPC
@@ -203,40 +215,57 @@ export default function Cart({
             cartItems.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 gap-3"
+                className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden"
               >
-                <div className="flex-1 w-full sm:w-auto">
-                  <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
-                  <p className="text-xs text-gray-500">₹{item.price} each</p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 gap-3">
+                  <div className="flex-1 w-full sm:w-auto">
+                    <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
+                    <p className="text-xs text-gray-500">₹{item.price} each</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden h-8">
+                      <button 
+                        onClick={() => decreaseQuantity(item.id)}
+                        className="px-2.5 h-full bg-amber-50 text-amber-600 hover:bg-amber-100 font-medium transition-colors"
+                      >
+                        -
+                      </button>
+                      <span className="px-2 font-medium min-w-[2rem] text-center text-sm">{item.quantity}</span>
+                      <button 
+                        onClick={() => increaseQuantity(item.id)}
+                        className="px-2.5 h-full bg-amber-50 text-amber-600 hover:bg-amber-100 font-medium transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                    
+                    <div className="w-16 text-right font-bold text-gray-900 text-sm">
+                      ₹{item.price * item.quantity}
+                    </div>
+                    
+                    <button
+                      onClick={() => deleteItem(item.id, item.name)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      <i className="ri-delete-bin-line"></i>
+                    </button>
+                  </div>
                 </div>
                 
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                  <div className="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden h-8">
-                    <button 
-                      onClick={() => decreaseQuantity(item.id)}
-                      className="px-2.5 h-full bg-amber-50 text-amber-600 hover:bg-amber-100 font-medium transition-colors"
-                    >
-                      -
-                    </button>
-                    <span className="px-2 font-medium min-w-[2rem] text-center text-sm">{item.quantity}</span>
-                    <button 
-                      onClick={() => increaseQuantity(item.id)}
-                      className="px-2.5 h-full bg-amber-50 text-amber-600 hover:bg-amber-100 font-medium transition-colors"
-                    >
-                      +
-                    </button>
-                  </div>
-                  
-                  <div className="w-16 text-right font-bold text-gray-900 text-sm">
-                    ₹{item.price * item.quantity}
-                  </div>
-                  
-                  <button
-                    onClick={() => deleteItem(item.id, item.name)}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                  >
-                    <i className="ri-delete-bin-line"></i>
-                  </button>
+                {/* Instruction Input */}
+                <div className="px-3 pb-3 border-t border-gray-200/50 pt-2 bg-white/50">
+                   <div className="flex items-center gap-2 mb-1">
+                      <i className="ri-edit-line text-[10px] text-amber-600"></i>
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Special Note</span>
+                   </div>
+                   <input 
+                    type="text" 
+                    placeholder="e.g. Extra spicy, no onions..."
+                    value={itemInstructions[item.id] || ""}
+                    onChange={(e) => updateInstruction(item.id, e.target.value)}
+                    className="w-full bg-transparent border-none outline-none text-[11px] font-medium text-gray-600 placeholder:text-gray-300 placeholder:italic"
+                   />
                 </div>
               </div>
             ))

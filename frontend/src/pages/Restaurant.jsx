@@ -8,13 +8,17 @@ import { useLocation, Link } from "react-router-dom";
 import { supabase } from '../supabaseClient';
 import { Star, Phone, MapPin, Clock, Info, ShieldCheck, Heart, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from "../context/AuthContext";
 
 const Restaurant = () => {
+  const { user } = useAuth();
   const [resto, setResto] = useState({});
   const [menuItems, setMenuItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true); 
   const [isMenuLoading, setIsMenuLoading] = useState(true); 
   const [rating, setRating] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
 
   const location = useLocation();
   const { id } = location.state;
@@ -75,8 +79,45 @@ const Restaurant = () => {
       }
     };
 
+    const checkFavorite = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from('favorites')
+          .select('*')
+          .eq('customer_id', user.id)
+          .eq('restaurant_id', id)
+          .maybeSingle();
+        setIsFavorited(!!data);
+      } catch (err) {
+        console.warn('Favorite check failed');
+      }
+    };
+
     fetchData();
-  }, [id]);
+    checkFavorite();
+  }, [id, user]);
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      alert("Please login to favorite restaurants");
+      return;
+    }
+    setFavLoading(true);
+    try {
+      if (isFavorited) {
+        await supabase.from('favorites').delete().eq('customer_id', user.id).eq('restaurant_id', id);
+        setIsFavorited(false);
+      } else {
+        await supabase.from('favorites').insert([{ customer_id: user.id, restaurant_id: id }]);
+        setIsFavorited(true);
+      }
+    } catch (err) {
+      alert("Action failed");
+    } finally {
+      setFavLoading(false);
+    }
+  };
 
   const [sortBy, setSortBy] = useState("default");
 
@@ -201,8 +242,14 @@ const Restaurant = () => {
                 alt={resto.name}
               />
               <div className="absolute inset-0 bg-gradient-to-r from-amber-50 via-transparent to-transparent hidden md:block"></div>
-              <button className="absolute top-6 right-6 p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white hover:text-red-500 transition-all shadow-lg">
-                <Heart size={20} />
+              <button 
+                onClick={handleToggleFavorite}
+                disabled={favLoading}
+                className={`absolute top-6 right-6 p-3 rounded-full backdrop-blur-md transition-all shadow-lg active:scale-90 ${
+                  isFavorited ? 'bg-red-500 text-white' : 'bg-white/20 text-white hover:bg-white hover:text-red-500'
+                }`}
+              >
+                <Heart size={20} className={isFavorited ? 'fill-current' : ''} />
               </button>
             </div>
           </div>

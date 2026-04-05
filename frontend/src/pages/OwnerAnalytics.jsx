@@ -106,6 +106,48 @@ export default function OwnerAnalytics() {
     return ids.size;
   }, [orders]);
 
+  const customerLoyaltyData = useMemo(() => {
+    const customerOrderCounts = {};
+    orders.forEach(order => {
+      customerOrderCounts[order.customer_id] = (customerOrderCounts[order.customer_id] || 0) + 1;
+    });
+    
+    let returning = 0;
+    let newCust = 0;
+    Object.values(customerOrderCounts).forEach(count => {
+      if (count > 1) returning++;
+      else newCust++;
+    });
+
+    return [
+      { name: 'Returning', value: returning },
+      { name: 'New', value: newCust }
+    ];
+  }, [orders]);
+
+  const handleExportCSV = () => {
+    const headers = ['Order ID', 'Date', 'Customer ID', 'Total Amount', 'Status'];
+    const rows = orders.map(o => [
+      o.order_id,
+      new Date(o.order_date).toLocaleString(),
+      o.customer_id,
+      o.total_amount,
+      o.order_status
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n"
+      + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `FoodOS_Analytics_${timeRange}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const COLORS = ['#F59E0B', '#F43F5E', '#10B981', '#3B82F6', '#8B5CF6'];
 
   const stats = [
@@ -154,6 +196,12 @@ export default function OwnerAnalytics() {
               <p className="text-gray-500 mt-1 font-medium tracking-tight">Advanced sales analytics and growth insights</p>
             </div>
             <div className="flex items-center gap-3">
+               <button 
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg font-bold text-xs hover:bg-gray-800 transition-all shadow-sm"
+               >
+                 <FiDownload /> Export CSV
+               </button>
                <select 
                  value={timeRange} 
                  onChange={(e) => setTimeRange(e.target.value)}
@@ -263,36 +311,52 @@ export default function OwnerAnalytics() {
           {/* Charts Row 2 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col min-h-[350px]">
-               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Peak Order Hours</h3>
+               <h3 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Customer Loyalty</h3>
                <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={peakHoursData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 9, fontWeight: 'bold'}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 'bold'}} />
-                        <Tooltip 
-                           cursor={{fill: '#F8FAFC'}}
-                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} 
-                        />
-                        <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} barSize={25}>
-                           {peakHoursData.map((entry, index) => (
-                             <Cell key={`cell-${index}`} fill={entry.value > 2 ? '#8B5CF6' : '#C4B5FD'} />
-                           ))}
-                        </Bar>
-                     </BarChart>
+                     <PieChart>
+                        <Pie
+                          data={customerLoyaltyData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {customerLoyaltyData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={index === 0 ? '#F59E0B' : '#1F2937'} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend verticalAlign="bottom" height={36}/>
+                     </PieChart>
                   </ResponsiveContainer>
                </div>
             </div>
 
-            <div className="bg-amber-500 text-white p-8 rounded-xl shadow-lg relative overflow-hidden flex flex-col justify-between">
+            <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-8 rounded-xl shadow-lg relative overflow-hidden flex flex-col justify-between">
+               <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <i className="ri-flashlight-line text-9xl"></i>
+               </div>
                <div className="relative z-10 space-y-4">
-                  <h3 className="text-2xl font-bold uppercase tracking-tighter">Performance Insight</h3>
+                  <h3 className="text-2xl font-bold uppercase tracking-tighter flex items-center gap-2">
+                    <i className="ri-magic-line"></i> AI Smart Insights
+                  </h3>
                   <p className="text-sm font-medium leading-relaxed opacity-90">
-                    "Peak ordering occurs between 7 PM and 9 PM. Your currently busiest dish is '{dishData[0]?.name || 'N/A'}'. Consider offering limited-time 'Flash Deals' during off-peak hours to maintain consistency."
+                    "Peak ordering occurs between 7 PM and 9 PM. Your currently busiest dish is '{dishData[0]?.name || 'N/A'}'. 
+                    <br/><br/>
+                    <strong className="block text-white">Action Plan:</strong>
+                    {customerLoyaltyData[0].value > customerLoyaltyData[1].value 
+                      ? "High customer retention! Launch a 'Loyalty Club' coupon to reward your regulars."
+                      : "Lots of new faces! Offer a 'First Order' discount to convert them into regulars."}
                   </p>
                </div>
-               <button className="relative z-10 w-fit mt-8 px-6 py-2.5 bg-white text-amber-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm">
-                  Export PDF Report
+               <button 
+                onClick={() => window.print()}
+                className="relative z-10 w-fit mt-8 px-6 py-2.5 bg-white text-amber-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all shadow-xl shadow-amber-900/20"
+               >
+                  Generate PDF Report
                </button>
             </div>
           </div>

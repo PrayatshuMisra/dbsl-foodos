@@ -24,6 +24,10 @@ export default function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Pending');
   const [trackedOrderId, setTrackedOrderId] = useState(null);
+  
+  // Prep Time Prompt State
+  const [showPrepModal, setShowPrepModal] = useState(null);
+  const [prepTimeInput, setPrepTimeInput] = useState(20);
 
   useEffect(() => {
     if (authLoading) return;
@@ -67,10 +71,12 @@ export default function OwnerDashboard() {
           order_status,
           delivery_address,
           dispatched_at,
+          estimated_prep_time,
           customers (name, phone_number),
           order_details (
             quantity,
             subtotal,
+            special_instructions,
             menu_items (item_name)
           )
         `)
@@ -86,9 +92,9 @@ export default function OwnerDashboard() {
     }
   };
 
-  const updateStatus = async (orderId, status) => {
+  const updateStatus = async (orderId, status, extraFields = {}) => {
     try {
-      const updates = { order_status: status };
+      const updates = { order_status: status, ...extraFields };
       if (status === 'Dispatched') {
         updates.dispatched_at = new Date().toISOString();
       }
@@ -104,6 +110,9 @@ export default function OwnerDashboard() {
       if (status === 'Dispatched') {
         setTrackedOrderId(orderId);
       }
+      
+      setShowPrepModal(null);
+      fetchOrders();
     } catch (err) {
       alert('Update failed');
     }
@@ -302,15 +311,29 @@ export default function OwnerDashboard() {
                           </div>
 
                           <div className="border-t border-gray-200 pt-4 flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
-                             <div className="flex-grow">
-                                <ul className="flex flex-wrap gap-2">
-                                  {order.order_details?.map((detail, idx) => (
-                                    <li key={idx} className="text-xs font-bold text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-100">
-                                       {detail.quantity}x {detail.menu_items?.item_name}
-                                    </li>
-                                  ))}
-                                </ul>
-                             </div>
+                           <div className="flex-grow">
+                              <ul className="flex flex-col gap-2">
+                                {order.order_details?.map((detail, idx) => (
+                                  <li key={idx} className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm">
+                                         {detail.quantity}x {detail.menu_items?.item_name}
+                                      </span>
+                                      {detail.special_instructions && (
+                                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 italic">
+                                          <i className="ri-edit-line"></i> {detail.special_instructions}
+                                        </span>
+                                      )}
+                                      {detail.special_instructions && (
+                                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 italic">
+                                          <i className="ri-edit-line"></i> {detail.special_instructions}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                           </div>
                              
                              <div className="flex gap-2">
                                 {order.order_status === 'Pending' && (
@@ -365,6 +388,64 @@ export default function OwnerDashboard() {
           </div>
         </div>
       </div>
+      {/* Prep Time Modal */}
+      <AnimatePresence>
+        {showPrepModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               onClick={() => setShowPrepModal(null)}
+               className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+             />
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+               className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full border border-gray-100"
+             >
+                <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-2xl mb-6 mx-auto">
+                   <i className="ri-time-line"></i>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Accept Order #{showPrepModal}?</h3>
+                <p className="text-gray-500 text-center text-sm mb-6 font-medium">Estimated preparation time (minutes):</p>
+                
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                     <button 
+                        onClick={() => setPrepTimeInput(Math.max(5, prepTimeInput - 5))}
+                        className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-lg font-black text-gray-600 hover:bg-gray-100 transition-colors"
+                     >
+                        -
+                     </button>
+                     <span className="text-3xl font-black text-gray-900">{prepTimeInput}</span>
+                     <button 
+                        onClick={() => setPrepTimeInput(prepTimeInput + 5)}
+                        className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-lg font-black text-gray-600 hover:bg-gray-100 transition-colors"
+                     >
+                        +
+                     </button>
+                  </div>
+                  
+                  <button 
+                    onClick={() => updateStatus(showPrepModal, 'Preparing', { estimated_prep_time: prepTimeInput })}
+                    className="w-full bg-amber-500 text-white rounded-xl py-4 font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-200 hover:bg-amber-600 transition-all active:scale-95"
+                  >
+                     Confirm & Accept
+                  </button>
+                  <button 
+                    onClick={() => setShowPrepModal(null)}
+                    className="w-full text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600"
+                  >
+                     Cancel
+                  </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <Footer />
     </div>
   );

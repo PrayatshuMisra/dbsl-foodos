@@ -14,6 +14,9 @@ const Checkout = () => {
   const [address, setAddress] = useState("");
   const [paymentOption, setPaymentOption] = useState("Cash on Delivery");
   const [isLoading, setIsLoading] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [saveThisAddress, setSaveThisAddress] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -23,23 +26,60 @@ const Checkout = () => {
       return;
     }
     
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       if (user) {
         try {
-          const { data } = await supabase.from('customers').select('*').eq('customer_id', user.id).single();
-          if (data) {
-            setName(data.name || "");
-            setMobile(data.phone_number || "");
-            setAddress(data.address || "");
+          const [profileRes, addrRes] = await Promise.all([
+            supabase.from('customers').select('*').eq('customer_id', user.id).single(),
+            supabase.from('customer_addresses').select('*').eq('customer_id', user.id)
+          ]);
+
+          if (profileRes.data) {
+            setName(profileRes.data.name || "");
+            setMobile(profileRes.data.phone_number || "");
+            // Default to profile address if no saved addresses yet
+            if (!addrRes.data?.length) {
+              setAddress(profileRes.data.address || "");
+            }
+          }
+
+          if (addrRes.data) {
+            setSavedAddresses(addrRes.data);
+            const defaultAddr = addrRes.data.find(a => a.is_default);
+            if (defaultAddr) setAddress(defaultAddr.address_text);
           }
         } catch(e) {
-          console.error("Error fetching profile", e);
+          console.error("Error fetching data", e);
         }
       }
       setIsLoading(false);
     };
-    fetchProfile();
+    fetchData();
   }, [user]);
+
+  const handleSaveAddress = async () => {
+    if (!address || isSavingAddress) return;
+    setIsSavingAddress(true);
+    try {
+      const { error } = await supabase.from('customer_addresses').insert([{
+        customer_id: user.id,
+        address_label: 'Other',
+        address_text: address,
+        is_default: savedAddresses.length === 0
+      }]);
+      if (error) throw error;
+      
+      // Refresh
+      const { data } = await supabase.from('customer_addresses').select('*').eq('customer_id', user.id);
+      setSavedAddresses(data || []);
+      setSaveThisAddress(false);
+      alert("Address saved successfully!");
+    } catch (err) {
+      alert("Failed to save address");
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-gray-50 pt-24 pb-12">
@@ -83,13 +123,54 @@ const Checkout = () => {
               </div>
 
               <div className="mb-6 border-b border-gray-100 pb-6">
-                <h2 className="mb-4 text-lg font-bold text-gray-900 border-l-4 border-amber-500 pl-3">Delivery Address</h2>
+                <div className="flex justify-between items-center mb-4">
+                   <h2 className="text-lg font-bold text-gray-900 border-l-4 border-amber-500 pl-3">Delivery Address</h2>
+                   {savedAddresses.length > 0 && (
+                     <div className="flex gap-2">
+                        {savedAddresses.slice(0, 3).map(addr => (
+                          <button 
+                            key={addr.address_id}
+                            onClick={() => setAddress(addr.address_text)}
+                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
+                              address === addr.address_text 
+                              ? 'bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200' 
+                              : 'bg-white border-gray-200 text-gray-400 hover:border-amber-500 hover:text-amber-500'
+                            }`}
+                          >
+                             {addr.address_label}
+                          </button>
+                        ))}
+                     </div>
+                   )}
+                </div>
                 <textarea
                   placeholder="Enter your full delivery address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="h-24 w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-colors resize-none"
+                  className="h-24 w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-colors resize-none mb-3"
                 ></textarea>
+
+                {!savedAddresses.find(a => a.address_text === address) && address && (
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={saveThisAddress}
+                      onChange={(e) => setSaveThisAddress(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-xs font-bold text-gray-500 group-hover:text-amber-600 transition-colors">Save this address for later</span>
+                  </label>
+                )}
+                
+                {saveThisAddress && (
+                  <button 
+                    onClick={handleSaveAddress}
+                    disabled={isSavingAddress}
+                    className="mt-3 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-amber-700 underline"
+                  >
+                    {isSavingAddress ? 'Saving...' : 'Confirm Save'}
+                  </button>
+                )}
               </div>
 
               <div>
